@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ITI21 · Mindmap + Wiedergabe-Training</title>
+<style>
+  :root{
+    --bg:#EEF1F7; --canvas-dot:#D3DAE8;
+    --ink:#1B2434; --ink-2:#3A465F; --ink-soft:#57647C; --line:#D2D9E6; --card:#FFFFFF;
+    --root-bg:#111A2C; --root-ink:#EEF2FB; --root-kicker:#6B7BA0; --root-sub:#9AA8C6;
+    --accent:#2D6CDF; --accent-ink:#FFFFFF;
+    --panel:#FFFFFF; --panel-blur:rgba(255,255,255,.85); --panel-blur-2:rgba(255,255,255,.55);
+    --field:#FFFFFF; --field-hover:#F7F9FC; --field-border:#D2D9E6;
+    --chip-bg:#F0F3F9; --track:#EDF0F6; --pip-off:#D5DCE8; --mix-base:#FFFFFF;
+    --danger-ink:#B23B57; --danger-bg:#FBEEF1; --danger-line:#F3CBD5;
+    --ok-ink:#1E8049; --ok-bg:#E7F6ED; --ok-line:#BFE6CE;
+    --overlay-bg:rgba(17,26,44,.55);
+    --shadow:0 1px 2px rgba(20,30,52,.06), 0 10px 22px -14px rgba(20,30,52,.28);
+    --shadow-hover:0 2px 4px rgba(20,30,52,.08), 0 16px 30px -14px rgba(20,30,52,.34);
+    --sans:ui-sans-serif,-apple-system,"Segoe UI",Roboto,system-ui,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Consolas,"Liberation Mono",monospace;
+    --radius:13px;
+    --b1:#5457D6; --b2:#0E8C7F; --b3:#2D6CDF; --b4:#7C4DCF;
+    --b5:#0E97B0; --b6:#C67A12; --b7:#C43E63; --b8:#2E9E54;
+  }
+
+  /* ===================== THEMES ===================== */
+  [data-theme="dark"]{
+    --bg:#0E1420; --canvas-dot:#1B2637;
+    --ink:#E7ECF6; --ink-2:#B9C4D8; --ink-soft:#8091AC; --line:#26324A; --card:#151D2C;
+    --root-bg:#050A14; --root-ink:#EAF0FB; --root-kicker:#6E80A6; --root-sub:#8CA0C4;
+    --accent:#3E82F0; --accent-ink:#FFFFFF;
+    --panel:#111A28; --panel-blur:rgba(15,23,37,.86); --panel-blur-2:rgba(15,23,37,.55);
+    --field:#182234; --field-hover:#1F2B40; --field-border:#2A3752;
+    --chip-bg:#1B2637; --track:#1B2637; --pip-off:#2C3A54; --mix-base:#151D2C;
+    --danger-ink:#F19BB0; --danger-bg:#2A1720; --danger-line:#4A2432;
+    --ok-ink:#7FD4A0; --ok-bg:#122318; --ok-line:#234A31;
+    --overlay-bg:rgba(3,7,14,.62);
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 26px -14px rgba(0,0,0,.7);
+    --shadow-hover:0 2px 6px rgba(0,0,0,.5), 0 18px 34px -14px rgba(0,0,0,.85);
+    --b1:#7B7EF0; --b2:#22B39F; --b3:#5A93F5; --b4:#A177E6;
+    --b5:#2CC0DC; --b6:#E39A3A; --b7:#E86A8C; --b8:#4FC578;
+  }
+  [data-theme="terminal"]{
+    --bg:#05100A; --canvas-dot:#0E2A1C;
+    --ink:#C9FFE3; --ink-2:#7FE9B4; --ink-soft:#4F9E78; --line:#123726; --card:#08160F;
+    --root-bg:#020A06; --root-ink:#9BFFCB; --root-kicker:#3FA875; --root-sub:#4F9E78;
+    --accent:#22E38A; --accent-ink:#022012;
+    --panel:#061109; --panel-blur:rgba(4,14,9,.88); --panel-blur-2:rgba(4,14,9,.6);
+    --field:#0A1B12; --field-hover:#0F2619; --field-border:#154A31;
+    --chip-bg:#0C2016; --track:#0E2A1C; --pip-off:#164028; --mix-base:#08160F;
+    --danger-ink:#FF8A6B; --danger-bg:#241009; --danger-line:#4A2313;
+    --ok-ink:#3BF59A; --ok-bg:#082617; --ok-line:#155F38;
+    --overlay-bg:rgba(2,10,6,.72);
+    --shadow:0 0 0 1px rgba(34,227,138,.07), 0 10px 24px -14px rgba(0,0,0,.85);
+    --shadow-hover:0 0 0 1px rgba(34,227,138,.16), 0 16px 30px -14px rgba(0,0,0,.9);
+    --sans:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Consolas,"Liberation Mono",monospace;
+    --b1:#35D6C6; --b2:#2CE38A; --b3:#41C7FF; --b4:#9D7BFF;
+    --b5:#2CE0DC; --b6:#E6C34A; --b7:#FF6E9A; --b8:#57E37A;
+  }
+  [data-theme="synth"]{
+    --bg:#160D2B; --canvas-dot:#2A1B4D;
+    --ink:#FDEBFF; --ink-2:#D9BEF2; --ink-soft:#A98FD6; --line:#3A2566; --card:#1E1140;
+    --root-bg:#0E0722; --root-ink:#FFE7FB; --root-kicker:#C77DFF; --root-sub:#B99CE8;
+    --accent:#FF4D9D; --accent-ink:#FFFFFF;
+    --panel:#180E33; --panel-blur:rgba(24,14,51,.84); --panel-blur-2:rgba(24,14,51,.55);
+    --field:#241553; --field-hover:#2C1A63; --field-border:#3A2566;
+    --chip-bg:#241553; --track:#241553; --pip-off:#3A2566; --mix-base:#1E1140;
+    --danger-ink:#FF7DA8; --danger-bg:#2E1030; --danger-line:#5A2350;
+    --ok-ink:#6BF0D0; --ok-bg:#0F2E33; --ok-line:#1F5A5E;
+    --overlay-bg:rgba(14,7,34,.68);
+    --shadow:0 0 0 1px rgba(255,77,157,.06), 0 12px 28px -14px rgba(0,0,0,.7);
+    --shadow-hover:0 0 0 1px rgba(0,229,255,.2), 0 18px 34px -14px rgba(0,0,0,.8);
+    --b1:#8A7BFF; --b2:#2CE3C4; --b3:#4DB8FF; --b4:#C77DFF;
+    --b5:#37E0E0; --b6:#FFB347; --b7:#FF5D9E; --b8:#4FE39A;
+  }
+  [data-theme="synth"] .canvas{
+    background-image:
+      radial-gradient(var(--canvas-dot) 1px, transparent 1.4px),
+      linear-gradient(180deg,#1B0F38,#160D2B 45%,#241056);
+    background-size:22px 22px,100% 100%;
+  }
+  .fx-scan{display:none}
+  [data-theme="terminal"] .fx-scan{display:block; position:fixed; inset:0; pointer-events:none; z-index:3;
+    background:repeating-linear-gradient(0deg, rgba(40,255,150,.04) 0 1px, transparent 1px 3px)}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans);
+    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; height:100vh; overflow:hidden}
+
+  /* ---------- Top bar ---------- */
+  .topbar{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:13px 22px;
+    background:var(--panel-blur); backdrop-filter:saturate(1.4) blur(8px);
+    border-bottom:1px solid var(--line); z-index:6}
+  .brand{display:flex; align-items:center; gap:13px; min-width:0}
+  .brand-mark{font-family:var(--mono); font-size:.82rem; font-weight:600; letter-spacing:.04em; color:#fff;
+    background:var(--root-bg); padding:7px 10px; border-radius:8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+  .brand h1{font-size:1.02rem; font-weight:650; margin:0; letter-spacing:-.01em; line-height:1.15}
+  .brand p{margin:2px 0 0; font-family:var(--mono); font-size:.68rem; letter-spacing:.02em; color:var(--ink-soft); text-transform:uppercase}
+  .controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto}
+  .search{position:relative}
+  .search input{font-family:var(--sans); font-size:.82rem; color:var(--ink); padding:8px 12px 8px 30px;
+    border:1px solid var(--field-border); border-radius:9px; background:var(--field); width:170px; outline:none; transition:border-color .15s, box-shadow .15s}
+  .search input:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(45,108,223,.14)}
+  .search svg{position:absolute; left:9px; top:50%; transform:translateY(-50%); color:var(--ink-soft)}
+  .btn{font-family:var(--sans); font-size:.78rem; font-weight:550; color:var(--ink); padding:8px 12px;
+    border:1px solid var(--line); border-radius:9px; background:var(--field); cursor:pointer; transition:all .14s; white-space:nowrap}
+  .btn:hover{border-color:var(--field-border); background:var(--field-hover)}
+  .btn:active{transform:translateY(1px)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .btn.primary{color:var(--accent-ink); background:var(--accent); border-color:var(--accent); box-shadow:0 6px 14px -8px rgba(0,0,0,.35)}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.primary .k{font-family:var(--mono); font-size:.9em; opacity:.85; margin-right:5px}
+
+  /* ---------- Legend ---------- */
+  .legend{display:flex; align-items:center; gap:6px 14px; flex-wrap:wrap; padding:9px 22px;
+    background:var(--panel-blur-2); border-bottom:1px solid var(--line); z-index:5}
+  .chip{display:inline-flex; align-items:center; gap:7px; cursor:pointer; font-size:.74rem; color:var(--ink-soft);
+    font-weight:550; border:none; background:none; padding:2px; border-radius:6px; transition:color .14s}
+  .chip:hover{color:var(--ink)}
+  .chip .dot{width:10px; height:10px; border-radius:3px; flex:none}
+  .chip:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+  /* ---------- Canvas ---------- */
+  .canvas{position:relative; flex:1; overflow:auto; cursor:grab; touch-action:none;
+    background-color:var(--bg);
+    background-image:radial-gradient(var(--canvas-dot) 1px, transparent 1.4px);
+    background-size:22px 22px}
+  .canvas.panning{cursor:grabbing}
+  .canvas.panning *{cursor:grabbing !important; user-select:none}
+  .tree{position:relative; width:fit-content; min-width:100%; padding:46px 90px 90px 46px}
+  .links{position:absolute; top:0; left:0; pointer-events:none; z-index:1; overflow:visible}
+
+  /* ---------- Nodes ---------- */
+  .nodewrap{display:flex; align-items:center; position:relative; z-index:2}
+  .kids{display:flex; flex-direction:column; gap:15px; margin-left:58px}
+  .nodewrap.collapsed > .kids{display:none}
+
+  .card{position:relative; background:var(--card); border:1px solid var(--line);
+    border-left:4px solid var(--c,#888); border-radius:var(--radius); box-shadow:var(--shadow);
+    cursor:pointer; max-width:320px; transition:box-shadow .16s, transform .16s;
+    animation:pop .32s cubic-bezier(.2,.7,.3,1) both}
+  @keyframes pop{from{opacity:0; transform:translateX(-6px) scale(.98)} to{opacity:1; transform:none}}
+  .card:hover{box-shadow:var(--shadow-hover); transform:translateY(-1px)}
+  .card:focus-visible{outline:2px solid var(--c,#2D6CDF); outline-offset:2px}
+
+  .card-main{display:flex; align-items:center; gap:11px; padding:11px 13px}
+  .badge{flex:none; width:26px; height:26px; border-radius:7px; display:grid; place-items:center;
+    font-family:var(--mono); font-size:.82rem; font-weight:600; color:#fff; background:var(--c,#888);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+  .ic{font-size:1.1rem; line-height:1; flex:none}
+  .txt{min-width:0; flex:1}
+  .ttl{font-weight:600; font-size:.9rem; letter-spacing:-.005em; line-height:1.25; color:var(--ink)}
+  .sub{font-family:var(--mono); font-size:.71rem; color:var(--ink-soft); margin-top:2px; letter-spacing:.01em; line-height:1.35; word-break:break-word}
+  .tools{display:flex; align-items:center; gap:8px; flex:none}
+  .dbtn{font-family:var(--mono); font-size:.62rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--c,#666); background:color-mix(in srgb, var(--c,#888) 9%, var(--mix-base));
+    border:1px solid color-mix(in srgb, var(--c,#888) 24%, var(--mix-base)); padding:4px 7px; border-radius:6px; cursor:pointer; transition:all .13s; white-space:nowrap}
+  .dbtn:hover{background:color-mix(in srgb, var(--c,#888) 16%, var(--mix-base))}
+  .chev{font-size:1.15rem; line-height:1; color:var(--ink-soft); transition:transform .2s ease; display:inline-block; width:12px; text-align:center}
+  .nodewrap:not(.collapsed) > .card .chev{transform:rotate(90deg)}
+  .count{font-family:var(--mono); font-size:.62rem; font-weight:600; color:var(--ink-soft);
+    background:var(--chip-bg); border:1px solid var(--line); border-radius:20px; padding:2px 7px}
+  .nodewrap:not(.collapsed) > .card .count{opacity:.4}
+
+  /* ---------- Detail ---------- */
+  .detail{display:none; padding:0 14px 14px 14px; border-top:1px dashed var(--line); margin-top:-1px}
+  .card.open-detail .detail{display:block; animation:fade .2s ease both}
+  @keyframes fade{from{opacity:0} to{opacity:1}}
+  .sumline{display:flex; gap:8px; align-items:flex-start; margin-top:12px}
+  .sum-badge{flex:none; font-family:var(--mono); font-size:.56rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--c,#666); background:color-mix(in srgb, var(--c,#888) 12%, var(--mix-base)); padding:3px 6px; border-radius:5px; margin-top:1px}
+  .sum-txt{font-size:.82rem; line-height:1.45; color:var(--ink); font-weight:550}
+  .detail .note{font-size:.79rem; line-height:1.55; color:var(--ink-2); margin:10px 0 0}
+  .kpbox{margin-top:11px}
+  .kp-h{font-family:var(--mono); font-size:.58rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:6px}
+  .kpbox ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px}
+  .kpbox li{position:relative; font-size:.76rem; line-height:1.45; color:var(--ink-2); padding-left:15px}
+  .kpbox li::before{content:""; position:absolute; left:2px; top:8px; width:6px; height:6px; border-radius:2px; background:var(--c,#888)}
+
+  /* ---------- Recall (inline) ---------- */
+  .recall{margin-top:13px; border-radius:10px; border:1px solid color-mix(in srgb, var(--c,#888) 22%, var(--mix-base));
+    background:color-mix(in srgb, var(--c,#888) 5%, var(--mix-base)); padding:10px 11px}
+  .recall-top{display:flex; align-items:center; gap:9px; margin-bottom:8px}
+  .recall-title{font-family:var(--mono); font-size:.6rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--c,#666)}
+  .recall-count{font-family:var(--mono); font-size:.62rem; color:var(--ink-soft); margin-left:auto}
+  .mastery{display:inline-flex; gap:3px}
+  .pip{width:7px; height:7px; border-radius:2px; background:var(--pip-off)}
+  .pip.on{background:var(--c,#888)}
+  .flash-q{font-size:.82rem; line-height:1.45; font-weight:600; color:var(--ink)}
+  .flash-a{font-size:.79rem; line-height:1.5; margin-top:8px; padding-top:8px; border-top:1px dashed color-mix(in srgb, var(--c,#888) 25%, var(--mix-base)); color:var(--ink-2)}
+  .flash-a strong{color:var(--c)}
+  .recall-actions{margin-top:9px}
+  .btn-reveal{font-family:var(--sans); font-size:.72rem; font-weight:600; color:#fff; background:var(--c,#666);
+    border:none; padding:7px 12px; border-radius:7px; cursor:pointer; transition:filter .13s}
+  .btn-reveal:hover{filter:brightness(1.08)}
+  .rate{display:flex; gap:7px}
+  .rate-btn{font-family:var(--sans); font-size:.72rem; font-weight:600; padding:7px 12px; border-radius:7px; cursor:pointer; border:1px solid; transition:all .13s; flex:1}
+  .rate-btn.again{color:var(--danger-ink); background:var(--danger-bg); border-color:var(--danger-line)}
+  .rate-btn.again:hover{background:color-mix(in srgb, var(--danger-ink) 16%, var(--mix-base))}
+  .rate-btn.good{color:var(--ok-ink); background:var(--ok-bg); border-color:var(--ok-line)}
+  .rate-btn.good:hover{background:color-mix(in srgb, var(--ok-ink) 16%, var(--mix-base))}
+
+  /* Root */
+  .card.root{background:var(--root-bg); border-color:transparent; border-left-color:transparent; max-width:280px;
+    box-shadow:0 14px 34px -16px rgba(17,26,44,.7)}
+  .card.root .ttl{color:var(--root-ink); font-size:1.28rem; font-weight:680; letter-spacing:-.02em}
+  .card.root .sub{color:var(--root-sub)}
+  .card.root .card-main{padding:15px 17px; gap:13px}
+  .card.root .kicker{font-family:var(--mono); font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--root-kicker); margin-bottom:4px}
+
+  .nodewrap[data-depth="2"] .card{max-width:298px}
+  .nodewrap[data-depth="2"] .ttl{font-size:.86rem}
+  .nodewrap[data-depth="3"] .card{max-width:288px}
+  .nodewrap[data-depth="3"] .ttl{font-size:.83rem}
+
+  /* Search states */
+  .canvas.searching .card{opacity:.28; filter:saturate(.55)}
+  .canvas.searching .nodewrap.on-path > .card{opacity:1; filter:none}
+  .canvas.searching .card.match{opacity:1; filter:none; box-shadow:0 0 0 2px var(--c,#2D6CDF), var(--shadow)}
+
+  /* ---------- Status bar ---------- */
+  .statusbar{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:9px 22px;
+    background:var(--panel-blur); border-top:1px solid var(--line); font-family:var(--mono);
+    font-size:.7rem; color:var(--ink-soft); z-index:6}
+  .statusbar strong{color:var(--ink); font-weight:600}
+  .statusbar .sep{width:1px; height:13px; background:var(--line)}
+  .hint{margin-left:auto; color:var(--ink-soft)}
+  .hint kbd{font-family:var(--mono); background:var(--chip-bg); border:1px solid var(--line); border-radius:5px; padding:1px 5px; font-size:.66rem; color:var(--ink)}
+
+  /* ---------- Overlay / Lernmodus ---------- */
+  .overlay{position:fixed; inset:0; z-index:50; background:var(--overlay-bg); backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center; padding:20px; animation:fade .18s ease both}
+  .overlay[hidden]{display:none}
+  .modal{width:min(620px,100%); max-height:90vh; overflow:auto; background:var(--panel); border-radius:18px;
+    box-shadow:0 30px 80px -20px rgba(0,0,0,.6); padding:22px 24px 20px; animation:rise .24s cubic-bezier(.2,.7,.3,1) both}
+  @keyframes rise{from{opacity:0; transform:translateY(12px) scale(.98)} to{opacity:1; transform:none}}
+  .modal-head{display:flex; align-items:flex-start; gap:12px; margin-bottom:16px}
+  .modal-title{font-size:1.15rem; font-weight:680; letter-spacing:-.01em}
+  .modal-sub{font-family:var(--mono); font-size:.66rem; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); margin-top:3px}
+  .modal-close{margin-left:auto; width:34px; height:34px; border-radius:9px; border:1px solid var(--line); background:var(--field);
+    cursor:pointer; font-size:1rem; color:var(--ink-soft); line-height:1; transition:all .14s}
+  .modal-close:hover{background:var(--field-hover); color:var(--ink)}
+  .scope{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px}
+  .ov-chip{font-family:var(--sans); font-size:.72rem; font-weight:600; padding:6px 10px; border-radius:20px;
+    border:1px solid var(--line); background:var(--field); color:var(--ink-soft); cursor:pointer; transition:all .13s}
+  .ov-chip:hover{border-color:var(--field-border)}
+  .ov-chip.active{color:var(--root-ink); background:var(--root-bg); border-color:var(--root-bg)}
+  .prog{height:7px; background:var(--track); border-radius:20px; overflow:hidden}
+  .prog-bar{height:100%; width:0; background:var(--accent); border-radius:20px; transition:width .3s ease}
+  .prog-meta{display:flex; justify-content:space-between; font-family:var(--mono); font-size:.66rem; color:var(--ink-soft); margin-top:7px}
+  .stage{margin-top:16px; min-height:230px; display:flex; flex-direction:column}
+
+  .ov-card{display:flex; flex-direction:column; gap:0; flex:1}
+  .ov-branch{font-family:var(--mono); font-size:.64rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:12px}
+  .ov-q{font-size:1.12rem; line-height:1.4; font-weight:600; color:var(--ink)}
+  .ov-a{font-size:1rem; line-height:1.55; color:var(--ink-2); margin-top:16px; padding-top:16px; border-top:2px solid var(--track)}
+  .ov-a[hidden]{display:none}
+  .ov-actions{margin-top:auto; padding-top:20px}
+  #ov-reveal{width:100%; font-family:var(--sans); font-size:.9rem; font-weight:600; color:var(--root-ink); background:var(--root-bg);
+    border:none; padding:13px; border-radius:11px; cursor:pointer; transition:filter .14s}
+  #ov-reveal:hover{filter:brightness(1.14)}
+  .ov-rate{display:flex; gap:10px}
+  .ov-rate[hidden]{display:none}
+  .ov-rate button{flex:1; font-family:var(--sans); font-size:.9rem; font-weight:650; padding:13px; border-radius:11px; cursor:pointer; border:1.5px solid; transition:all .14s}
+  #ov-again{color:var(--danger-ink); background:var(--danger-bg); border-color:var(--danger-line)}
+  #ov-again:hover{background:color-mix(in srgb, var(--danger-ink) 16%, var(--mix-base))}
+  #ov-good{color:var(--ok-ink); background:var(--ok-bg); border-color:var(--ok-line)}
+  #ov-good:hover{background:color-mix(in srgb, var(--ok-ink) 16%, var(--mix-base))}
+  .ov-rate button .k{font-family:var(--mono); font-size:.8em; opacity:.7; margin-right:6px}
+
+  .ov-done{display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; flex:1; gap:8px; padding:18px 0}
+  .ov-done-icon{width:56px; height:56px; border-radius:50%; background:var(--ok-bg); color:var(--ok-ink); display:grid; place-items:center; font-size:1.6rem; margin-bottom:6px}
+  .ov-done-title{font-size:1.2rem; font-weight:680}
+  .ov-done-sub{font-size:.86rem; color:var(--ink-soft); line-height:1.5}
+  #ov-restart{margin-top:14px; font-family:var(--sans); font-size:.86rem; font-weight:600; color:var(--accent-ink); background:var(--accent);
+    border:none; padding:11px 20px; border-radius:10px; cursor:pointer}
+  #ov-restart:hover{filter:brightness(1.08)}
+  .ov-hint{font-family:var(--mono); font-size:.64rem; color:var(--ink-soft); text-align:center; margin-top:16px}
+  .ov-hint b{color:var(--ink)}
+
+  @media (max-width:640px){
+    .brand p{display:none}
+    .search input{width:120px}
+    .hint{display:none}
+    .kids{margin-left:40px}
+    .ov-q{font-size:1rem}
+  }
+  @media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important} }
+
+  /* ---------- Theme-Auswahl ---------- */
+  .theme-picker{position:relative}
+  .theme-menu{position:absolute; right:0; top:calc(100% + 6px); z-index:20; min-width:176px;
+    background:var(--panel); border:1px solid var(--line); border-radius:11px; box-shadow:var(--shadow-hover);
+    padding:5px; display:flex; flex-direction:column; gap:2px}
+  .theme-menu[hidden]{display:none}
+  .theme-menu button{display:flex; align-items:center; gap:9px; font-family:var(--sans); font-size:.8rem; font-weight:550;
+    color:var(--ink); background:none; border:none; text-align:left; padding:8px 10px; border-radius:8px; cursor:pointer; transition:background .12s}
+  .theme-menu button:hover{background:var(--field-hover)}
+  .theme-menu button .sw{width:22px; height:22px; border-radius:6px; flex:none; border:1px solid rgba(128,128,128,.35)}
+  .theme-menu button .ck{margin-left:auto; color:var(--accent); opacity:0; font-weight:700}
+  .theme-menu button.active .ck{opacity:1}
+  .sw-light{background:linear-gradient(135deg,#EEF1F7 50%,#2D6CDF 50%)}
+  .sw-dark{background:linear-gradient(135deg,#0E1420 50%,#3E82F0 50%)}
+  .sw-terminal{background:linear-gradient(135deg,#05100A 50%,#22E38A 50%)}
+  .sw-synth{background:linear-gradient(135deg,#160D2B 50%,#FF4D9D 50%)}
+
+  /* ---------- Schreibmodus (Lernmodus) ---------- */
+  .switch{position:relative; display:inline-flex; align-items:center; cursor:pointer; user-select:none;
+    font-family:var(--mono); font-size:.62rem; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); gap:7px}
+  .switch input{position:absolute; opacity:0; width:0; height:0}
+  .switch .tk{width:34px; height:19px; border-radius:20px; background:var(--track); position:relative; transition:background .16s; flex:none}
+  .switch .tk::after{content:""; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%;
+    background:var(--panel); box-shadow:0 1px 2px rgba(0,0,0,.3); transition:transform .16s}
+  .switch input:checked + .tk{background:var(--accent)}
+  .switch input:checked + .tk::after{transform:translateX(15px)}
+  .modewrap{margin-left:auto; margin-right:6px}
+
+  .ov-write{margin-top:16px; display:flex; flex-direction:column; gap:9px}
+  .ov-input{width:100%; min-height:96px; resize:vertical; font-family:var(--sans); font-size:.95rem; line-height:1.5;
+    color:var(--ink); background:var(--field); border:1.5px solid var(--field-border); border-radius:11px; padding:11px 13px; outline:none; transition:border-color .14s, box-shadow .14s}
+  .ov-input:focus{border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent)}
+  .ov-input::placeholder{color:var(--ink-soft); opacity:.7}
+  .ov-writebtns{display:flex; gap:10px}
+  #ov-check{flex:1; font-family:var(--sans); font-size:.9rem; font-weight:650; color:var(--accent-ink); background:var(--accent);
+    border:none; padding:13px; border-radius:11px; cursor:pointer; transition:filter .14s}
+  #ov-check:hover{filter:brightness(1.08)}
+  #ov-skip{font-family:var(--sans); font-size:.84rem; font-weight:600; color:var(--ink-soft); background:var(--field);
+    border:1px solid var(--field-border); padding:13px 15px; border-radius:11px; cursor:pointer; transition:all .14s; white-space:nowrap}
+  #ov-skip:hover{background:var(--field-hover)}
+
+  .score{display:flex; align-items:center; gap:13px; margin-top:16px; padding:12px 14px; border-radius:12px;
+    border:1px solid var(--line); background:var(--mix-base)}
+  .score.pass{border-color:var(--ok-line); background:var(--ok-bg)}
+  .score.mid{border-color:color-mix(in srgb,#E0A83A 45%,var(--mix-base)); background:color-mix(in srgb,#E0A83A 12%, var(--mix-base))}
+  .score.fail{border-color:var(--danger-line); background:var(--danger-bg)}
+  .score-ring{flex:none; width:54px; height:54px; border-radius:50%; display:grid; place-items:center;
+    background:conic-gradient(var(--sc,#888) calc(var(--p,0)*1%), var(--track) 0)}
+  .score-ring::after{content:""; grid-area:1/1; width:42px; height:42px; border-radius:50%; background:var(--panel)}
+  .score-ring b{grid-area:1/1; z-index:1; font-family:var(--mono); font-size:.82rem; font-weight:700; color:var(--ink)}
+  .score-txt{min-width:0}
+  .score-verdict{font-size:.95rem; font-weight:700}
+  .score.pass .score-verdict{color:var(--ok-ink)}
+  .score.mid .score-verdict{color:#C6871A}
+  .score.fail .score-verdict{color:var(--danger-ink)}
+  .score-sub{font-family:var(--mono); font-size:.68rem; color:var(--ink-soft); margin-top:2px}
+  .kw{display:flex; flex-wrap:wrap; gap:5px; margin-top:11px}
+  .kw-tag{font-family:var(--mono); font-size:.66rem; font-weight:600; padding:3px 8px; border-radius:20px; border:1px solid}
+  .kw-hit{color:var(--ok-ink); background:var(--ok-bg); border-color:var(--ok-line)}
+  .kw-miss{color:var(--danger-ink); background:var(--danger-bg); border-color:var(--danger-line); text-decoration:line-through; opacity:.85}
+  .your-answer{font-size:.9rem; line-height:1.5; color:var(--ink-2); background:var(--chip-bg); border-radius:10px; padding:9px 12px; margin-top:12px; white-space:pre-wrap; word-break:break-word}
+  .your-answer .yl{font-family:var(--mono); font-size:.6rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); display:block; margin-bottom:4px}
+  .ov-suggest{box-shadow:0 0 0 2px var(--accent)}
+
+  /* ---------- Notiz-Editor (verschiebbar · ausklinkbar · themefarben) ---------- */
+  .editor{position:fixed; right:20px; top:118px; z-index:45; width:384px; height:452px;
+    min-width:264px; min-height:220px; max-width:calc(100vw - 8px); max-height:calc(100vh - 96px);
+    display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; box-shadow:var(--shadow-hover); overflow:hidden; resize:both}
+  .editor[hidden]{display:none}
+  .editor-head{display:flex; align-items:center; gap:8px; padding:9px 11px; cursor:move; user-select:none;
+    background:var(--panel-blur-2); border-bottom:1px solid var(--line)}
+  .editor-head.dragging{cursor:grabbing}
+  .editor-title{font-family:var(--mono); font-size:.72rem; font-weight:700; letter-spacing:.03em; color:var(--ink)}
+  .editor-head-actions{margin-left:auto; display:flex; gap:5px}
+  .editor-head-actions button{width:26px; height:26px; border-radius:7px; border:1px solid var(--line); background:var(--field);
+    color:var(--ink-soft); cursor:pointer; font-size:.92rem; line-height:1; display:grid; place-items:center; transition:all .13s}
+  .editor-head-actions button:hover{background:var(--field-hover); color:var(--ink)}
+  .editor-toolbar{display:flex; align-items:center; gap:8px; padding:8px 11px; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .editor-toolbar select{font-family:var(--sans); font-size:.76rem; color:var(--ink); background:var(--field);
+    border:1px solid var(--field-border); border-radius:7px; padding:5px 7px; cursor:pointer}
+  .fontsize{display:inline-flex; align-items:center; gap:6px; margin-left:auto}
+  .fontsize button{width:27px; height:27px; border-radius:7px; border:1px solid var(--field-border); background:var(--field);
+    color:var(--ink); cursor:pointer; font-weight:600; line-height:1; transition:all .12s}
+  .fontsize button:hover{background:var(--field-hover)}
+  .fontsize b{font-family:var(--mono); font-size:.72rem; color:var(--ink-soft); min-width:28px; text-align:center}
+  .editor-symbols{display:flex; flex-wrap:wrap; gap:4px; padding:8px 11px; border-bottom:1px solid var(--line); max-height:108px; overflow:auto}
+  .editor-symbols button{min-width:30px; height:28px; padding:0 6px; border-radius:6px; border:1px solid var(--line);
+    background:var(--field); color:var(--ink); font-size:15px; cursor:pointer; transition:all .12s}
+  .editor-symbols button:hover{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+  .editor-text{flex:1; width:100%; border:none; outline:none; resize:none; padding:13px 14px;
+    background:var(--panel); color:var(--ink); font-size:16px; line-height:1.6; font-family:var(--sans)}
+  .editor-text::placeholder{color:var(--ink-soft); opacity:.7}
+</style>
+</head>
+<body>
+<div class="fx-scan" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">ITI21</span>
+    <div>
+      <h1>Netzwerktechnik &middot; IT-Infrastruktur</h1>
+      <p>Mindmap + Wiedergabe-Training &middot; Heft 1</p>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn primary" id="study-btn"><span class="k">↺</span>Lernmodus</button>
+    <button class="btn" id="editor-btn" title="Notiz-Editor öffnen">📝 Editor</button>
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="search" type="text" placeholder="Suchen &hellip;" autocomplete="off" spellcheck="false">
+    </div>
+    <button class="btn" data-act="all">Alles &ouml;ffnen</button>
+    <button class="btn" data-act="overview">&Uuml;bersicht</button>
+    <button class="btn" data-act="l2">Ebene 2</button>
+    <button class="btn" data-act="l3">Ebene 3</button>
+    <div class="theme-picker">
+      <button class="btn" id="theme-btn" aria-haspopup="true" aria-expanded="false">&#127912; Design</button>
+      <div class="theme-menu" id="theme-menu" hidden role="menu">
+        <button data-theme="light" role="menuitem"><span class="sw sw-light"></span>Hell<span class="ck">&#10003;</span></button>
+        <button data-theme="dark" role="menuitem"><span class="sw sw-dark"></span>Dunkel<span class="ck">&#10003;</span></button>
+        <button data-theme="terminal" role="menuitem"><span class="sw sw-terminal"></span>Terminal<span class="ck">&#10003;</span></button>
+        <button data-theme="synth" role="menuitem"><span class="sw sw-synth"></span>Synthwave<span class="ck">&#10003;</span></button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="legend" id="legend"></div>
+
+<main class="canvas" id="canvas">
+  <div class="tree" id="tree">
+    <svg class="links" id="links"></svg>
+  </div>
+</main>
+
+<footer class="statusbar">
+  <span>Ge&ouml;ffnet: <strong id="stat-open">0</strong> / <span id="stat-total">0</span> Zweige</span>
+  <span class="sep"></span>
+  <span><strong id="stat-nodes">0</strong> Knoten</span>
+  <span class="sep"></span>
+  <span>Karten sicher: <strong id="stat-cards">0</strong> / <span id="stat-cards-total">0</span></span>
+  <span class="hint">Ziehen = verschieben &middot; Klick = auf-/zuklappen &middot; <kbd>Details</kbd> = &uuml;ben</span>
+</footer>
+
+<!-- Lernmodus -->
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Lernmodus">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Lernmodus</div>
+        <div class="modal-sub">Wiedergabe-Training &middot; aktives Erinnern</div>
+      </div>
+      <label class="switch modewrap" title="Antwort selbst eintippen und bewerten lassen"><input type="checkbox" id="ov-mode" checked><span class="tk"></span>Schreiben</label>
+      <button class="modal-close" id="ov-close" aria-label="Schlie&szlig;en">&times;</button>
+    </div>
+    <div class="scope" id="ov-scope"></div>
+    <div class="prog"><div class="prog-bar" id="ov-bar"></div></div>
+    <div class="prog-meta"><span id="ov-counter"></span><span id="ov-mastered"></span></div>
+    <div class="stage" id="ov-stage"></div>
+    <div class="ov-hint"><b>Enter</b> = auswerten / best&auml;tigen &middot; <b>1</b> = Nochmal &middot; <b>2</b> = Gewusst &middot; <b>Leertaste</b> = aufdecken (Flip) &middot; <b>Esc</b> = schlie&szlig;en</div>
+  </div>
+</div>
+
+<!-- Notiz-Editor (verschiebbar, ausklinkbar) -->
+<div class="editor" id="editor" hidden>
+  <div class="editor-head" id="editor-head">
+    <span class="editor-title">📝 Notiz-Editor</span>
+    <div class="editor-head-actions">
+      <button id="editor-pop" title="In eigenem Fenster &ouml;ffnen (auch au&szlig;erhalb der Plattform)">&#8663;</button>
+      <button id="editor-close" title="Schlie&szlig;en" aria-label="Schlie&szlig;en">&times;</button>
+    </div>
+  </div>
+  <div class="editor-toolbar">
+    <select id="editor-font" title="Schriftart">
+      <option value="sans">Sans</option>
+      <option value="serif">Serif</option>
+      <option value="mono">Mono</option>
+    </select>
+    <span class="fontsize">
+      <button id="editor-fs-minus" title="Kleiner" aria-label="Schrift kleiner">A&minus;</button>
+      <b id="editor-fs">16</b>
+      <button id="editor-fs-plus" title="Gr&ouml;&szlig;er" aria-label="Schrift gr&ouml;&szlig;er">A&#65291;</button>
+    </span>
+  </div>
+  <div class="editor-symbols" id="editor-symbols"></div>
+  <textarea id="editor-text" class="editor-text" spellcheck="false" placeholder="Notizen, Formeln, Merks&auml;tze &hellip;"></textarea>
+</div>
+
+<script>
+// ============================================================
+//  DATEN — ITI21  (data-driven; für weitere Hefte nur diesen Block tauschen)
+//  Jeder Knoten: summary (In Kürze), note (Erklärung), kp (Kernpunkte),
+//  cards [{q,a}] (Wiedergabe-Training).
+// ============================================================
+const ROOT = { kicker:"IT-Infrastruktur", icon:"🧭", title:"ITI21", sub:"Netzwerk-Fundament", root:true };
+
+const BRANCHES = [
+{ color:"var(--b1)", icon:"🌐", title:"Internet-Aufbau & ISP-Hierarchie", sub:"Wie das Internet strukturiert ist",
+  summary:"Das Internet ist ein dezentrales „Netz aus Netzen“, verbunden über eine Provider-Hierarchie und die Regeln von Peering und Transit.",
+  note:"Es gibt keine zentrale Instanz: Tausende eigenständig verwaltete Netze (Autonome Systeme) koppeln sich freiwillig. Wer wen erreicht und wer wofür zahlt, ergibt sich aus der Anbieter-Hierarchie (Tier 1–3) und den Vereinbarungen Peering (gleichberechtigt, meist gratis) bzw. Transit (bezahlter Weiterleitungsdienst).",
+  cards:[{q:"Warum nennt man das Internet ein „Netz aus Netzen“?", a:"Es hat keine zentrale Instanz — viele eigenständig verwaltete Netze (Autonome Systeme) koppeln sich freiwillig über Peering und Transit."}],
+  children:[
+    { icon:"🏢", title:"ISP-Hierarchie (Tier-Modell)", sub:"Tier 1 · Tier 2 · Tier 3",
+      summary:"Provider werden nach Reichweite und Rolle in drei Tiers eingeteilt.",
+      note:"Die Ebene sagt, wie ein Provider den Rest des Internets erreicht: Tier-1 über reines Peering (zahlt nie Transit), Tier-2 gemischt, Tier-3 nur über gekauften Transit.",
+      cards:[{q:"Wonach werden ISPs in Tier 1/2/3 eingeteilt?", a:"Nach Reichweite und danach, wie sie den Rest des Internets erreichen: reines Peering → Tier 1, gemischt → Tier 2, nur Transit → Tier 3."}],
+      children:[
+        { title:"Tier-1 · Globales Backbone",
+          summary:"Erreicht das ganze Internet nur über Peering — zahlt nie für Transit.",
+          note:"Besitzt ein weltweites Backbone und ist mit allen anderen Tier-1 direkt (settlement-free) verbunden. Dadurch erreicht es jedes Ziel, ohne irgendwo Transit einkaufen zu müssen.",
+          kp:["Eigenes weltweites Backbone","Nur settlement-free Peering","Kauft keinen Transit","z. B. Lumen, AT&T, Telia"],
+          cards:[{q:"Was macht einen Tier-1-ISP aus?", a:"Er erreicht das gesamte Internet ausschließlich über (settlement-free) Peering und muss nirgends Transit kaufen — dank eigenem weltweitem Backbone."}] },
+        { title:"Tier-2 · Regional / National",
+          summary:"Peert regional, kauft aber Transit von Tier-1 für den globalen Rest.",
+          note:"Deckt eine Region/ein Land ab und peert mit Nachbarn, um Kosten zu sparen. Für alles, was über Peering nicht erreichbar ist, wird Transit bei einem Tier-1 gekauft.",
+          kp:["Mischung aus Peering und Transit","Regional/national ausgedehnt","z. B. Sunrise, Swisscom (vereinfacht)"],
+          cards:[{q:"Wie erreicht ein Tier-2 das ganze Internet?", a:"Über eine Mischung: Peering für regionale Ziele, gekaufter Transit (von Tier-1) für den globalen Rest."}] },
+        { title:"Tier-3 · Zugangs-ISP",
+          summary:"Lokaler Endkunden-Provider, erreicht das Internet nur über gekauften Transit.",
+          note:"Betreibt die „letzte Meile“ zum Endkunden und hat i. d. R. keine eigenen Peering-Beziehungen — er kauft Transit ein, um Konnektivität weiterzugeben.",
+          kp:["Nur Transit, kein Peering","Bindet Endkunden ans Netz an","Betreibt die „letzte Meile“"],
+          cards:[{q:"Wie hängt ein Tier-3-ISP am Internet?", a:"Ausschließlich über gekauften Transit (kein eigenes Peering); er verbindet Endkunden über die „letzte Meile“."}] },
+      ]},
+    { icon:"🔗", title:"Peering vs. Transit", sub:"Der wirtschaftliche Unterschied",
+      summary:"Peering = gleichberechtigter, meist gratis Austausch; Transit = bezahlter Weg ins ganze Internet.",
+      note:"Der zentrale wirtschaftliche Mechanismus des Internets. Beim Peering tauschen zwei Netze direkt ihren Traffic (oft an einem IXP, meist ohne Zahlung). Beim Transit kauft ein Netz bei einem größeren die Weiterleitung ins gesamte übrige Internet.",
+      cards:[{q:"Unterschied Peering vs. Transit?", a:"Peering: direkter, gleichberechtigter, meist kostenloser Traffic-Austausch. Transit: bezahlter Dienst, der Zugang zum gesamten restlichen Internet liefert."}],
+      children:[
+        { title:"Peering",
+          summary:"Direkter, gleichberechtigter, meist kostenloser Traffic-Austausch.",
+          note:"Zwei Netze verbinden sich direkt und tauschen nur den Traffic ihrer jeweiligen Kunden — settlement-free, also ohne Zahlung. Realisiert oft an einem IXP.",
+          kp:["Direkter Traffic-Austausch","Meist keine Zahlung (settlement-free)","Oft an einem IXP realisiert"],
+          cards:[{q:"Was bedeutet „settlement-free“ Peering?", a:"Zwei Netze tauschen Traffic direkt aus, ohne dass eine Seite die andere bezahlt."}] },
+        { title:"Transit",
+          summary:"Bezahlter Dienst: Zugang zum gesamten übrigen Internet.",
+          note:"Der Transit-Anbieter leitet den Traffic seines Kunden zu allen anderen Netzen weiter — ein klassisches Kunde-Anbieter-Verhältnis mit Bezahlung.",
+          kp:["Kostenpflichtig","Zugang zum „Rest des Internets“","Kunde-Anbieter-Verhältnis"],
+          cards:[{q:"Wofür zahlt man beim Transit?", a:"Für die Weiterleitung des eigenen Traffics ins gesamte übrige Internet."}] },
+        { title:"IXP · Internet Exchange Point",
+          summary:"Physischer Knoten, an dem viele Netze zusammenkommen, um zu peeren.",
+          note:"An einem IXP (z. B. DE-CIX, CIXP) sind viele AS physisch zusammengeschaltet. Das senkt Kosten und Latenz, weil Traffic lokal ausgetauscht wird statt über teure Transit-Wege.",
+          kp:["Zentraler Peering-Standort","Senkt Kosten & Latenz","Viele AS an einem Ort"],
+          cards:[{q:"Wozu dient ein IXP?", a:"Als zentraler Ort, an dem viele Netze direkt peeren — das senkt Kosten und Latenz gegenüber Transit."}] },
+      ]},
+    { icon:"🗺️", title:"Autonome Systeme (AS)", sub:"Eigenständig verwaltete Netze",
+      summary:"Ein AS ist ein eigenständig verwaltetes Netz mit eigener Routing-Politik (z. B. Sunrise).",
+      note:"Jedes AS hat eine eindeutige AS-Nummer (ASN). Innerhalb eines AS wird mit RIP/OSPF geroutet, zwischen AS mit BGP — genau die Peering-/Transit-Entscheidungen werden über BGP umgesetzt.",
+      kp:["AS = eigenständig verwaltetes Netz (z. B. Sunrise, Swisscom)","Identifiziert durch AS-Nummer (ASN)","Intra-AS-Routing: RIP / OSPF","Inter-AS-Routing: BGP (Vertiefung in ITI25)"],
+      cards:[{q:"Was ist ein Autonomes System (AS)?", a:"Ein Netz unter einheitlicher Verwaltung mit eigener Routing-Politik, identifiziert durch eine AS-Nummer (ASN)."},{q:"Welches Protokoll routet ZWISCHEN Autonomen Systemen?", a:"BGP (innerhalb eines AS dagegen RIP oder OSPF)."}] },
+  ]},
+
+{ color:"var(--b2)", icon:"📶", title:"Schichtenmodell — Grundprinzip", sub:"Warum Kommunikation in Schichten",
+  summary:"Netzkommunikation wird in Schichten zerlegt — jede mit klarer Aufgabe, die die Dienste der Schicht darunter nutzt.",
+  note:"„Teile und Herrsche“: Statt eine riesige Aufgabe zu lösen, kümmert sich jede Schicht nur um ihren Teil und bietet der Schicht darüber einen definierten Dienst an. Das macht Netze standardisierbar und Komponenten austauschbar — auf Kosten von etwas Overhead.",
+  cards:[{q:"Welches Grundprinzip steckt hinter Schichtenmodellen?", a:"„Teile und Herrsche“ — jede Schicht löst nur ihre Teilaufgabe und stellt der darüberliegenden einen definierten Dienst bereit."}],
+  children:[
+    { icon:"↔️", title:"Protokoll vs. Dienst", sub:"horizontal vs. vertikal",
+      summary:"Protokoll = horizontal (gleiche Schicht, logisch); Dienst = vertikal (zur Schicht darüber, real).",
+      note:"Ein Protokoll regelt die Kommunikation zwischen gleichen Schichten zweier Rechner (logisch/horizontal). Ein Dienst ist das, was eine Schicht der direkt darüberliegenden real anbietet (vertikal) — zugänglich über einen SAP.",
+      cards:[{q:"Protokoll vs. Dienst — horizontal oder vertikal?", a:"Protokoll = horizontal (gleiche Schicht ↔ gleiche Schicht, logisch). Dienst = vertikal (eine Schicht bietet der darüberliegenden real etwas an)."}],
+      children:[
+        { title:"Protokoll (horizontal)",
+          summary:"Regeln zwischen gleichen Schichten zweier Systeme — logisch, nicht physisch.",
+          note:"Zwei Schichten gleicher Ebene „sprechen“ logisch miteinander (z. B. TCP mit TCP). Physisch läuft die Kommunikation aber immer über die unteren Schichten.",
+          kp:["Gleiche Schicht ↔ gleiche Schicht","Logische (nicht physische) Verbindung","Definiert Format & Ablauf"],
+          cards:[{q:"Was definiert ein Protokoll?", a:"Format und Ablauf der (logischen) Kommunikation zwischen gleichen Schichten zweier Systeme."}] },
+        { title:"Dienst (vertikal)",
+          summary:"Eine Schicht stellt der darüberliegenden ihre Funktionalität real bereit.",
+          note:"Die reale Kommunikation ist immer vertikal: Jede Schicht nutzt den Dienst der Schicht unter sich und bietet ihrerseits der Schicht über sich einen Dienst an.",
+          kp:["Zwischen benachbarten Schichten","Reale (vertikale) Kommunikation","Über einen SAP zugänglich"],
+          cards:[{q:"In welche Richtung läuft ein „Dienst“?", a:"Vertikal — eine Schicht bietet der direkt darüberliegenden ihre Funktionalität an."}] },
+        { title:"SAP · Service Access Point",
+          summary:"Der Übergabepunkt, an dem eine Schicht ihren Dienst anbietet.",
+          note:"Am SAP greift die höhere Schicht auf den Dienst der tieferen zu. Er adressiert eindeutig, welcher Dienst gemeint ist.",
+          kp:["Schnittstelle zwischen zwei Schichten","Adressiert den Dienst"],
+          cards:[{q:"Was ist ein SAP?", a:"Service Access Point — der Übergabepunkt, über den eine Schicht ihren Dienst der Schicht darüber bereitstellt."}] },
+      ]},
+    { icon:"⚖️", title:"Vor- & Nachteile", sub:"Nutzen und Kosten der Schichtung",
+      summary:"+ Unabhängigkeit, Flexibilität, Standardisierung; − Overhead durch Header je Schicht.",
+      note:"Weil Schichten entkoppelt sind, kann man eine austauschen, ohne die anderen zu ändern (z. B. WLAN statt Kabel auf Schicht 1). Preis dafür ist der Header, den jede Schicht anhängt.",
+      kp:["+ Unabhängigkeit der Schichten","+ Flexibilität & Austauschbarkeit","+ Standardisierung","− Overhead durch Header je Schicht"],
+      cards:[{q:"Nenne 3 Vorteile und 1 Nachteil der Schichtung.", a:"Vorteile: Unabhängigkeit, Flexibilität/Austauschbarkeit, Standardisierung. Nachteil: Overhead durch Header in jeder Schicht."}] },
+  ]},
+
+{ color:"var(--b3)", icon:"🗂️", title:"OSI-Modell (7 Schichten)", sub:"Theoretisches Referenzmodell",
+  summary:"Theoretisches 7-Schichten-Referenzmodell; Merksatz 7→1: „All People Seem To Need Data Processing“.",
+  note:"Das OSI-Modell ist die gemeinsame Sprache der Netzwerktechnik. Schichten 1–4 sind transportorientiert (bringen Daten von A nach B), 5–7 anwendungsorientiert (bereiten Daten für die Anwendung auf). In der Praxis nutzt man TCP/IP, spricht aber in OSI-Begriffen.",
+  cards:[{q:"Merksatz für die OSI-Schichten (7→1)?", a:"„All People Seem To Need Data Processing“ — Application, Presentation, Session, Transport, Network, Data Link, Physical."},{q:"Welche OSI-Schichten sind transport- bzw. anwendungsorientiert?", a:"1–4 transportorientiert, 5–7 anwendungsorientiert."}],
+  children:[
+    { badge:"7", title:"Application · Anwendung", sub:"HTTP · DNS · SMTP · FTP · SSH",
+      summary:"Schnittstelle zu Anwendungen, stellt Netzwerkdienste bereit.",
+      note:"Nicht die Anwendung selbst, sondern die Dienste, die Anwendungen nutzen (z. B. HTTP fürs Web, DNS für Namensauflösung).",
+      cards:[{q:"Schicht 7 — Aufgabe & Beispiele?", a:"Application: stellt Anwendungen Netzwerkdienste bereit — HTTP, DNS, SMTP, FTP, SSH."}] },
+    { badge:"6", title:"Presentation · Darstellung", sub:"SSL/TLS · JPEG · ASCII",
+      summary:"Einheitliche Datendarstellung: Codierung, Kompression, Verschlüsselung.",
+      note:"Sorgt dafür, dass Sender und Empfänger Daten gleich interpretieren — inkl. Verschlüsselung (SSL/TLS) und Formaten (JPEG, ASCII).",
+      cards:[{q:"Schicht 6 — Aufgabe?", a:"Presentation: Codierung, Kompression und Verschlüsselung für eine einheitliche Datendarstellung (SSL/TLS, JPEG, ASCII)."}] },
+    { badge:"5", title:"Session · Sitzung", sub:"NetBIOS · RPC",
+      summary:"Auf-/Abbau und Steuerung von Sitzungen, Dialog & Synchronisation.",
+      note:"Verwaltet die Sitzung zwischen zwei Endpunkten: Aufbau, Synchronisationspunkte, geordneter Abbau.",
+      cards:[{q:"Schicht 5 — Aufgabe?", a:"Session: Auf-/Abbau und Steuerung von Sitzungen, Dialog und Synchronisation (NetBIOS, RPC)."}] },
+    { badge:"4", title:"Transport", sub:"TCP · UDP",
+      summary:"Ende-zu-Ende-Verbindung, Segmentierung, Ports, Fluss-/Fehlerkontrolle.",
+      note:"Die erste durchgehende Verbindung zwischen den Endsystemen. Zerlegt Daten in Segmente, adressiert Prozesse über Ports und wählt zwischen TCP (zuverlässig) und UDP (schnell).",
+      cards:[{q:"Schicht 4 — Aufgabe & Protokolle?", a:"Transport: Ende-zu-Ende-Verbindung, Segmentierung, Ports, Fluss-/Fehlerkontrolle — TCP und UDP."}] },
+    { badge:"3", title:"Network · Vermittlung", sub:"IP · ICMP · ARP",
+      summary:"Logische Adressierung (IP) und Wegwahl (Routing) zwischen Netzen.",
+      note:"Bringt Pakete über Netzgrenzen hinweg ans Ziel: IP-Adressen als logische Adressen, Router treffen hier die Wegwahl.",
+      cards:[{q:"Schicht 3 — Aufgabe & Adresse?", a:"Network/Vermittlung: logische Adressierung (IP) und Routing zwischen Netzen — IP, ICMP, ARP."}] },
+    { badge:"2", title:"Data Link · Sicherung", sub:"Ethernet · WLAN · Switch",
+      summary:"Frames, MAC-Adressen, Fehlererkennung im lokalen Netz.",
+      note:"Organisiert die Übertragung im direkten Netz: bildet Frames, adressiert per MAC und erkennt Übertragungsfehler (über den Trailer).",
+      cards:[{q:"Schicht 2 — Aufgabe & Adresse?", a:"Data Link/Sicherung: Frames, MAC-Adressen, Fehlererkennung — Ethernet, WLAN, Switch."}] },
+    { badge:"1", title:"Physical · Bitübertragung", sub:"Kabel · LWL · Funk · Hub",
+      summary:"Übertragung einzelner Bits als Signale über das Medium.",
+      note:"Die physische Ebene: Wie wird eine 1 oder 0 als Signal (Spannung, Licht, Funk) übertragen? Kabel, Glasfaser, Funk, Hub.",
+      cards:[{q:"Schicht 1 — Aufgabe?", a:"Physical: Übertragung einzelner Bits als Signale über das physische Medium (Kabel, LWL, Funk, Hub)."}] },
+  ]},
+
+{ color:"var(--b4)", icon:"🧩", title:"Kapselung & PDUs", sub:"Wie Daten die Schichten durchlaufen",
+  summary:"Beim Senden hängt jede Schicht ihren Header an (Kapselung); die Dateneinheit heißt je Schicht anders (PDU).",
+  note:"Kapselung ist der rote Faden durchs Schichtenmodell: Schicht für Schicht wird ein Header (Schicht 2 zusätzlich ein Trailer) angehängt. Beim Empfänger läuft es rückwärts (Entkapselung). Der Name der Dateneinheit verrät die Schicht.",
+  cards:[{q:"Was passiert bei der Kapselung?", a:"Jede Schicht hängt beim Senden ihren Header an (Schicht 2 auch einen Trailer); der Empfänger entfernt sie schichtweise wieder (Entkapselung)."}],
+  children:[
+    { title:"Kapselung / Entkapselung",
+      summary:"Senden = Header anhängen (7→1); Empfangen = Header entfernen (1→7).",
+      note:"Der Header jeder Schicht enthält die Steuerinfos, die die gleiche Schicht auf der Gegenseite braucht. Schicht 2 fügt zusätzlich einen Trailer für die Fehlererkennung an.",
+      kp:["Sender: Schicht 7 → 1, Header wächst","Empfänger: Schicht 1 → 7, Header schwindet","Schicht 2 fügt zusätzlich einen Trailer an (Fehlererkennung)"],
+      cards:[{q:"Welche Schicht fügt zusätzlich einen Trailer an — und wofür?", a:"Schicht 2 (Data Link) — für die Fehlererkennung."}] },
+    { title:"PDU pro Schicht", sub:"Nachricht · Segment · Paket · Frame · Bits",
+      summary:"Nachricht (5–7) · Segment (4) · Paket (3) · Frame (2) · Bits (1).",
+      note:"PDU = Protocol Data Unit. Der Name sagt dir sofort, auf welcher Schicht du bist — ein häufiges Prüfungsdetail.",
+      kp:["Schicht 5–7: Daten / Nachricht","Schicht 4: Segment (TCP) / Datagramm (UDP)","Schicht 3: Paket","Schicht 2: Frame (Rahmen)","Schicht 1: Bits"],
+      cards:[{q:"Wie heißt die PDU auf Schicht 4, 3, 2, 1?", a:"4: Segment (bzw. Datagramm bei UDP), 3: Paket, 2: Frame, 1: Bits."}] },
+    { title:"MTU · Maximum Transmission Unit", sub:"Ethernet ≈ 1500 Byte",
+      summary:"Maximale Nutzlast eines Frames auf einem Medium (Ethernet ≈ 1500 Byte).",
+      note:"Ist ein Paket größer als die MTU, muss es fragmentiert werden. Die MTU hängt vom Übertragungsmedium ab.",
+      kp:["Begrenzt die Frame-Größe","Medienabhängig","Größere Pakete werden fragmentiert"],
+      cards:[{q:"Was ist die MTU?", a:"Maximum Transmission Unit — die maximale Nutzlast eines Frames auf einem Medium (z. B. Ethernet ≈ 1500 Byte); größere Pakete werden fragmentiert."}] },
+  ]},
+
+{ color:"var(--b5)", icon:"🔀", title:"TCP/IP-Modell (4 Schichten)", sub:"Praxismodell des Internets",
+  summary:"Praxismodell des Internets mit 4 Schichten; fasst mehrere OSI-Schichten zusammen.",
+  note:"Während OSI das Referenzmodell ist, beschreibt TCP/IP die reale Internet-Architektur. Es bündelt OSI 5–7 zu „Anwendung“ und OSI 1–2 zu „Netzwerkzugang“.",
+  cards:[{q:"Wie ordnet TCP/IP (4 Schichten) den OSI-Schichten zu?", a:"Anwendung = OSI 5–7, Transport = OSI 4, Internet = OSI 3, Netzwerkzugang = OSI 1–2."}],
+  children:[
+    { title:"Anwendung", sub:"= OSI 5–7 · HTTP · FTP · DNS · SMTP",
+      summary:"Alle anwendungsnahen Protokolle (= OSI 5–7).",
+      note:"Fasst Sitzung, Darstellung und Anwendung zusammen.",
+      cards:[{q:"TCP/IP-Anwendungsschicht = welche OSI-Schichten?", a:"OSI 5, 6 und 7 (Session, Presentation, Application)."}] },
+    { title:"Transport (Host-to-Host)", sub:"= OSI 4 · TCP · UDP",
+      summary:"Ende-zu-Ende-Transport mit Ports (= OSI 4).",
+      note:"Identisch zur OSI-Transportschicht: TCP/UDP, Portadressierung.",
+      cards:[{q:"Welche Protokolle leben in der TCP/IP-Transportschicht?", a:"TCP und UDP."}] },
+    { title:"Internet", sub:"= OSI 3 · IP · ICMP",
+      summary:"Logische Adressierung und Routing (= OSI 3).",
+      note:"Das „IP“ in TCP/IP: adressiert und routet Pakete über Netzgrenzen.",
+      cards:[{q:"Aufgabe der TCP/IP-Internetschicht?", a:"Logische Adressierung (IP) und Routing — entspricht OSI 3."}] },
+    { title:"Netzwerkzugang", sub:"= OSI 1–2 · Ethernet",
+      summary:"Hardware, Frames, physische Übertragung (= OSI 1–2).",
+      note:"Bündelt Bitübertragung und Sicherung; hier z. B. Ethernet.",
+      cards:[{q:"TCP/IP-Netzwerkzugang = welche OSI-Schichten?", a:"OSI 1 und 2 (Physical + Data Link)."}] },
+    { title:"Portnummern", sub:"ordnen Segmente → Prozesse",
+      summary:"Ordnen ankommende Segmente dem richtigen Prozess/Dienst zu.",
+      note:"Die IP-Adresse bringt das Paket zum Rechner, der Port bringt es zum richtigen Dienst. Well-known Ports (0–1023) sind fest vergeben.",
+      kp:["Well-known Ports 0–1023","80 HTTP · 443 HTTPS · 53 DNS","25 SMTP · 22 SSH · 21 FTP"],
+      cards:[{q:"IP-Adresse vs. Portnummer — welche Rolle?", a:"IP-Adresse adressiert den Rechner, der Port den Dienst/Prozess darauf."},{q:"Ports für HTTP, HTTPS, DNS, SSH?", a:"HTTP 80, HTTPS 443, DNS 53, SSH 22."}] },
+  ]},
+
+{ color:"var(--b6)", icon:"🚦", title:"TCP vs. UDP", sub:"Zuverlässig vs. schnell",
+  summary:"Schicht-4-Protokolle: TCP zuverlässig & verbindungsorientiert, UDP schnell & verbindungslos.",
+  note:"Die Wahl ist ein Trade-off: TCP garantiert Vollständigkeit und Reihenfolge (Web, Mail, Downloads), kostet aber Zeit durch Handshake und Bestätigungen. UDP verzichtet auf Garantien für minimale Latenz (Streaming, VoIP, DNS, Gaming).",
+  cards:[{q:"Wann TCP, wann UDP?", a:"TCP, wenn Vollständigkeit/Reihenfolge zählt (Web, Mail, Download). UDP, wenn Geschwindigkeit/Latenz zählt (Streaming, VoIP, DNS, Gaming)."}],
+  children:[
+    { title:"TCP · Transmission Control Protocol",
+      summary:"Verbindungsorientiert & zuverlässig — garantiert Reihenfolge und Zustellung.",
+      note:"Baut vor der Übertragung eine Verbindung auf (3-Way-Handshake), bestätigt empfangene Daten (ACK), überträgt Verlorenes neu und regelt das Tempo über Fluss- und Staukontrolle.",
+      kp:["Verbindungsaufbau: 3-Way-Handshake (SYN → SYN-ACK → ACK)","Bestätigung (ACK) & Neuübertragung","Fluss- und Staukontrolle","Einsatz: Web, E-Mail, Datei-Transfer"],
+      cards:[{q:"Nenne die 3 Schritte des TCP-Verbindungsaufbaus.", a:"SYN → SYN-ACK → ACK (3-Way-Handshake)."},{q:"Wie stellt TCP Zuverlässigkeit her?", a:"Durch Bestätigungen (ACK), Neuübertragung verlorener Segmente sowie Fluss- und Staukontrolle."}] },
+    { title:"UDP · User Datagram Protocol",
+      summary:"Verbindungslos & schnell — ohne Zustellgarantie, minimaler Overhead.",
+      note:"Verschickt Datagramme direkt ohne Verbindungsaufbau. Keine Bestätigung, keine Reihenfolge-Garantie — dafür sehr geringe Latenz und wenig Overhead.",
+      kp:["Kein Verbindungsaufbau","Keine Garantie für Reihenfolge/Zustellung","Sehr geringe Latenz","Einsatz: Streaming, VoIP, DNS, Gaming"],
+      cards:[{q:"Warum ist UDP schneller als TCP?", a:"Kein Verbindungsaufbau, keine Bestätigungen/Neuübertragungen — weniger Overhead, geringere Latenz (aber keine Garantie)."}] },
+  ]},
+
+{ color:"var(--b7)", icon:"🖧", title:"Zwischensysteme / Netzkomponenten", sub:"Welches Gerät auf welcher Schicht",
+  summary:"Geräte unterscheiden sich nach der höchsten Schicht, die sie auswerten: Hub 1, Switch 1–2, Router 1–3, Host 1–7.",
+  note:"Je höher die Schicht, desto „intelligenter“ das Gerät. Der Hub verteilt nur Signale, der Switch entscheidet per MAC, der Router per IP, das Endsystem nutzt alle Schichten.",
+  cards:[{q:"Ordne Hub, Switch, Router, Host den OSI-Schichten zu.", a:"Hub: 1, Switch: 1–2, Router: 1–3, Endsystem/Host: 1–7."}],
+  children:[
+    { title:"Hub", sub:"Schicht 1",
+      summary:"Verteilt Signale an alle Ports — eine gemeinsame Kollisionsdomäne.",
+      note:"Wertet nichts aus, sendet jedes Signal an alle Ports. Alle Geräte teilen sich eine Kollisionsdomäne → ineffizient, heute veraltet.",
+      kp:["Reiner Signalverteiler","Keine Adressauswertung","Veraltet"],
+      cards:[{q:"Auf welcher Schicht arbeitet ein Hub — und was ist sein Nachteil?", a:"Schicht 1; er verteilt Signale an alle Ports (eine gemeinsame Kollisionsdomäne), ohne Adressen auszuwerten."}] },
+    { title:"Switch", sub:"Schicht 1–2",
+      summary:"Leitet Frames gezielt per MAC-Adresse weiter — je Port eine eigene Kollisionsdomäne.",
+      note:"Lernt, welche MAC-Adresse an welchem Port hängt (MAC-Tabelle), und leitet Frames nur dorthin weiter → effizient, keine unnötigen Kollisionen.",
+      kp:["Arbeitet mit MAC-Adressen","Lernt Adressen in der MAC-Tabelle","Gezielte Weiterleitung"],
+      cards:[{q:"Wie entscheidet ein Switch, wohin ein Frame geht?", a:"Anhand der Ziel-MAC-Adresse über seine gelernte MAC-Tabelle (Schicht 2)."}] },
+    { title:"Router", sub:"Schicht 1–3",
+      summary:"Verbindet Netze und wählt anhand der IP-Adresse den Weg (Routing).",
+      note:"Arbeitet bis Schicht 3: koppelt verschiedene Netze/Subnetze und trifft die Wegwahl anhand von IP-Adresse und Routing-Tabelle.",
+      kp:["Arbeitet mit IP-Adressen","Verbindet Netze / Subnetze","Trifft Wegwahl-Entscheidungen"],
+      cards:[{q:"Womit arbeitet ein Router und was ist seine Aufgabe?", a:"Mit IP-Adressen (Schicht 3): er verbindet Netze/Subnetze und trifft die Wegwahl (Routing)."}] },
+    { title:"Endsystem (Host)", sub:"Schicht 1–7",
+      summary:"PC/Server/Smartphone — durchläuft den kompletten Protokollstapel (1–7).",
+      note:"Quelle und Ziel der Kommunikation. Nur Endsysteme nutzen alle sieben Schichten.",
+      kp:["Nutzt alle 7 Schichten","Quelle und Ziel der Kommunikation"],
+      cards:[{q:"Welche OSI-Schichten nutzt ein Endsystem?", a:"Alle sieben (1–7) — es ist Quelle und Ziel der Kommunikation."}] },
+  ]},
+
+{ color:"var(--b8)", icon:"📡", title:"Netzklassifikation & Vermittlung", sub:"Reichweite · Topologie · Vermittlung",
+  summary:"Netze einteilen nach Reichweite (PAN…GAN), Topologie (Stern/Bus/Ring/Masche) und Vermittlung (Leitung vs. Paket).",
+  note:"Drei unabhängige Ordnungskriterien: Wie weit reicht das Netz? Wie sind die Knoten verbunden? Und wie wird eine Verbindung aufgebaut?",
+  cards:[{q:"Nach welchen drei Kriterien kann man Netze einteilen?", a:"Nach geografischer Reichweite, Topologie und Vermittlungsart."}],
+  children:[
+    { icon:"🌍", title:"Nach Reichweite (geografisch)", sub:"PAN · LAN · MAN · WAN · GAN",
+      summary:"PAN (Meter) → LAN (Gebäude) → MAN (Stadt) → WAN (Land) → GAN (weltweit).",
+      note:"Die Reichweite wächst von wenigen Metern (PAN, z. B. Bluetooth) bis weltweit (GAN = das Internet).",
+      kp:["PAN — Personal (Meter, z. B. Bluetooth)","LAN — Local (Gebäude, Ethernet/WLAN)","MAN — Metropolitan (Stadt)","WAN — Wide (Land/Kontinent)","GAN — Global (weltweit = Internet)"],
+      cards:[{q:"Ordne PAN, LAN, MAN, WAN, GAN nach wachsender Reichweite.", a:"PAN (Meter) < LAN (Gebäude) < MAN (Stadt) < WAN (Land/Kontinent) < GAN (weltweit)."}] },
+    { icon:"🔷", title:"Topologien", sub:"Stern · Bus · Ring · Masche",
+      summary:"Stern (heute Standard), Bus, Ring, Masche (redundant).",
+      note:"Die Topologie beschreibt, wie Knoten verbunden sind. Der Stern (zentraler Switch) ist heute Standard; Masche bietet Redundanz, Bus/Ring sind älter.",
+      kp:["Stern — zentraler Verteiler (heute Standard)","Bus — gemeinsame Leitung","Ring — geschlossener Kreis","Masche (Mesh) — redundant vernetzt"],
+      cards:[{q:"Welche Topologie ist heute Standard — und welche bietet Redundanz?", a:"Standard: Stern (zentraler Verteiler). Redundanz: Masche (Mesh)."}] },
+    { icon:"🔃", title:"Vermittlungsarten", sub:"Leitung vs. Paket",
+      summary:"Leitungsvermittlung (feste Leitung) vs. Paketvermittlung (Pakete, dynamisch).",
+      note:"Beim Verbindungsaufbau gibt es zwei Prinzipien: eine feste Leitung für die ganze Dauer (Telefon) oder das Zerlegen in Pakete, die unabhängig geroutet werden (Internet).",
+      cards:[{q:"Leitungs- vs. Paketvermittlung — Kernunterschied?", a:"Leitungsvermittlung: feste, exklusive Leitung für die ganze Dauer. Paketvermittlung: Daten in Pakete zerlegt, unabhängig und dynamisch geroutet."}],
+      children:[
+        { title:"Leitungsvermittlung",
+          summary:"Feste, exklusive Leitung für die gesamte Verbindungsdauer (klassisches Telefon).",
+          note:"Die Leitung ist reserviert — konstante Qualität, aber ineffizient, weil sie auch bei Sprechpausen belegt bleibt.",
+          kp:["Dedizierte Verbindung","Konstante Qualität","Ineffizient bei Sprechpausen"],
+          cards:[{q:"Vorteil und Nachteil der Leitungsvermittlung?", a:"Vorteil: konstante Qualität (dedizierte Leitung). Nachteil: ineffizient, da die Leitung auch bei Pausen belegt bleibt."}] },
+        { title:"Paketvermittlung",
+          summary:"Daten in Pakete zerlegt, unabhängig und dynamisch geroutet (Internet).",
+          note:"Jedes Paket sucht sich seinen Weg (Store-and-Forward). Die Leitung wird von vielen geteilt → effizient, Grundlage des Internets.",
+          kp:["Daten in Pakete zerlegt","Dynamische Wegwahl","Effiziente Leitungsnutzung","Store-and-Forward"],
+          cards:[{q:"Warum ist Paketvermittlung effizient?", a:"Weil Pakete unabhängig/dynamisch geroutet werden und viele sich die Leitung teilen (Store-and-Forward) statt sie exklusiv zu reservieren."}] },
+      ]},
+  ]},
+];
+
+// ============================================================
+//  SPEICHER (Leitner-Boxen; funktioniert lokal, bricht in Vorschau nicht)
+// ============================================================
+const store = {
+  key:'iti21_mindmap_srs_v1', data:{},
+  load(){ try{ this.data = JSON.parse(localStorage.getItem(this.key)) || {}; }catch(e){ this.data = {}; } },
+  save(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} },
+  getBox(id){ return (this.data[id] && this.data[id].box) || 0; },
+  setBox(id, box){ this.data[id] = { box }; this.save(); }
+};
+store.load();
+const MASTER_BOX = 4; // ab hier gilt eine Karte als "sicher"
+
+// ============================================================
+//  RENDER
+// ============================================================
+const tree = document.getElementById('tree');
+const links = document.getElementById('links');
+const canvas = document.getElementById('canvas');
+const NS = "http://www.w3.org/2000/svg";
+let expandables = [];
+const ALL_CARDS = [];
+const RECALLS = new Map();
+let recallSeq = 0;
+
+function el(t,c,h){ const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e; }
+
+function prepareCards(node, ctx){
+  let cards = node.cards;
+  if((!cards || !cards.length) && (node.note || (node.kp && node.kp.length))){
+    const back=[node.note].concat(node.kp||[]).filter(Boolean).join(' — ');
+    cards=[{q:'Erkläre: '+node.title, a:back}];
+  }
+  if(cards && cards.length){
+    node._cards = cards.map((c,i)=>{
+      const id = ctx.pathId+':'+i;
+      if(ctx.branchIdx>=0) ALL_CARDS.push({id,q:c.q,a:c.a,bi:ctx.branchIdx,color:ctx.color,branch:ctx.branchTitle,node:node.title});
+      return {id,q:c.q,a:c.a};
+    });
+  }
+}
+
+function pips(box){ let s=''; for(let i=0;i<5;i++) s+='<i class="pip'+(i<box?' on':'')+'"></i>'; return s; }
+
+function renderRecall(r){
+  const st = RECALLS.get(r.dataset.rc); const c = st.cards[st.idx];
+  r.querySelector('[data-role=q]').textContent = c.q;
+  const a = r.querySelector('[data-role=a]'); a.textContent = c.a; a.hidden = !st.revealed;
+  r.querySelector('[data-role=count]').textContent = (st.idx+1)+' / '+st.cards.length;
+  r.querySelector('[data-role=reveal]').hidden = st.revealed;
+  r.querySelector('[data-role=rate]').hidden = !st.revealed;
+  r.querySelector('[data-role=mastery]').innerHTML = pips(store.getBox(c.id));
+}
+function buildRecall(cards){
+  const id='rc'+(recallSeq++); RECALLS.set(id,{cards,idx:0,revealed:false});
+  const r=el('div','recall'); r.dataset.rc=id;
+  r.innerHTML =
+    '<div class="recall-top"><span class="recall-title">↺ Wiedergabe</span>'+
+    '<span class="mastery" data-role="mastery"></span><span class="recall-count" data-role="count"></span></div>'+
+    '<div class="flash"><div class="flash-q" data-role="q"></div><div class="flash-a" data-role="a" hidden></div></div>'+
+    '<div class="recall-actions"><button class="btn-reveal" data-role="reveal">Antwort zeigen</button>'+
+    '<div class="rate" data-role="rate" hidden><button class="rate-btn again" data-role="again">Nochmal</button>'+
+    '<button class="rate-btn good" data-role="good">Gewusst ✓</button></div></div>';
+  renderRecall(r); return r;
+}
+
+function buildCard(node, ctx){
+  const hasKids = node.children && node.children.length;
+  const hasDetail = node.summary || node.note || (node.kp && node.kp.length) || (node._cards && node._cards.length);
+  const card = el('div','card'+(node.root?' root':''));
+  card.style.setProperty('--c', ctx.color);
+  card.tabIndex=0; card.setAttribute('role','button');
+  card.dataset.kids = hasKids?'1':'0'; card.dataset.detail = hasDetail?'1':'0';
+  if(hasKids) card.setAttribute('aria-expanded','true');
+
+  const main=el('div','card-main');
+  if(node.badge) main.appendChild(el('div','badge', node.badge));
+  else if(node.icon) main.appendChild(el('span','ic', node.icon));
+  const txt=el('div','txt');
+  if(node.root && node.kicker) txt.appendChild(el('div','kicker', node.kicker));
+  const t=el('div','ttl'); t.textContent=node.title; txt.appendChild(t);
+  if(node.sub){ const s=el('div','sub'); s.textContent=node.sub; txt.appendChild(s); }
+  main.appendChild(txt);
+  const tools=el('div','tools');
+  if(hasDetail && !node.root) tools.appendChild(el('button','dbtn','Details'));
+  if(hasKids){ tools.appendChild(el('span','count', String(node.children.length))); tools.appendChild(el('span','chev','›')); }
+  main.appendChild(tools); card.appendChild(main);
+
+  if(hasDetail){
+    const det=el('div','detail');
+    if(node.summary){ const sl=el('div','sumline'); sl.appendChild(el('span','sum-badge','In Kürze'));
+      const st=el('span','sum-txt'); st.textContent=node.summary; sl.appendChild(st); det.appendChild(sl); }
+    if(node.note){ const p=el('p','note'); p.textContent=node.note; det.appendChild(p); }
+    if(node.kp && node.kp.length){ const box=el('div','kpbox'); box.appendChild(el('div','kp-h','Kernpunkte'));
+      const ul=document.createElement('ul'); node.kp.forEach(k=>{ const li=document.createElement('li'); li.textContent=k; ul.appendChild(li); });
+      box.appendChild(ul); det.appendChild(box); }
+    if(node._cards && node._cards.length) det.appendChild(buildRecall(node._cards));
+    card.appendChild(det);
+  }
+  return card;
+}
+
+function buildNode(node, ctx){
+  const wrap=el('div','nodewrap'); wrap.dataset.depth=ctx.depth; wrap.dataset.color=ctx.color;
+  prepareCards(node, ctx);
+  wrap.appendChild(buildCard(node, ctx));
+  if(node.children && node.children.length){
+    const kids=el('div','kids');
+    node.children.forEach((ch,i)=>{
+      const cctx = ctx.depth===0
+        ? {color:ch.color, depth:1, branchIdx:i, branchTitle:ch.title, pathId:'b'+i}
+        : {color:ctx.color, depth:ctx.depth+1, branchIdx:ctx.branchIdx, branchTitle:ctx.branchTitle, pathId:ctx.pathId+'.'+i};
+      kids.appendChild(buildNode(ch, cctx));
+    });
+    wrap.appendChild(kids); expandables.push(wrap);
+  }
+  return wrap;
+}
+
+const rootData = Object.assign({}, ROOT, { children: BRANCHES });
+const rootWrap = buildNode(rootData, {color:'var(--root-bg)', depth:0, branchIdx:-1, branchTitle:'', pathId:'r'});
+tree.appendChild(rootWrap);
+expandables.push(rootWrap);
+expandables = [...new Set(expandables)];
+
+// ---------- Legend ----------
+const legend=document.getElementById('legend');
+BRANCHES.forEach((b,i)=>{
+  const chip=el('button','chip'); chip.type='button';
+  const dot=el('span','dot'); dot.style.background=b.color; chip.appendChild(dot);
+  chip.appendChild(document.createTextNode(b.title));
+  chip.addEventListener('click',()=>{
+    const target=rootWrap.querySelectorAll(':scope > .kids > .nodewrap')[i]; if(!target) return;
+    rootWrap.classList.remove('collapsed'); target.classList.remove('collapsed');
+    updateAria(); drawLinks(); updateStats();
+    target.querySelector(':scope > .card').scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
+  });
+  legend.appendChild(chip);
+});
+
+// ---------- Connectors ----------
+function drawLinks(){
+  const W=tree.scrollWidth, H=tree.scrollHeight;
+  links.setAttribute('width',W); links.setAttribute('height',H); links.setAttribute('viewBox','0 0 '+W+' '+H);
+  while(links.firstChild) links.removeChild(links.firstChild);
+  const tRect=tree.getBoundingClientRect();
+  document.querySelectorAll('.kids').forEach(kids=>{
+    const wrap=kids.parentElement; if(wrap.classList.contains('collapsed')) return;
+    const pCard=wrap.querySelector(':scope > .card'); if(!pCard || pCard.offsetParent===null) return;
+    const p=pCard.getBoundingClientRect();
+    const x1=p.right-tRect.left, y1=p.top-tRect.top+p.height/2;
+    kids.querySelectorAll(':scope > .nodewrap').forEach(cw=>{
+      const cCard=cw.querySelector(':scope > .card'); if(!cCard || cCard.offsetParent===null) return;
+      const c=cCard.getBoundingClientRect();
+      const x2=c.left-tRect.left, y2=c.top-tRect.top+c.height/2, midX=x1+(x2-x1)*0.5;
+      const path=document.createElementNS(NS,'path');
+      path.setAttribute('d','M '+x1+' '+y1+' C '+midX+' '+y1+', '+midX+' '+y2+', '+x2+' '+y2);
+      path.setAttribute('fill','none'); path.setAttribute('stroke', cw.dataset.color||'#9AA6BC');
+      path.setAttribute('stroke-width', wrap===rootWrap?'2.4':'2'); path.setAttribute('stroke-opacity','0.5');
+      path.setAttribute('stroke-linecap','round'); links.appendChild(path);
+    });
+  });
+}
+const afterLayout = ()=> requestAnimationFrame(drawLinks);
+
+// ---------- Interaction ----------
+function updateAria(){ document.querySelectorAll('.card[data-kids="1"]').forEach(c=>{
+  c.setAttribute('aria-expanded', c.parentElement.classList.contains('collapsed')?'false':'true'); }); }
+function toggleKids(wrap){ wrap.classList.toggle('collapsed'); updateAria(); afterLayout(); requestAnimationFrame(updateStats); }
+function toggleDetail(card){ card.classList.toggle('open-detail'); afterLayout(); }
+function primary(card){ const w=card.parentElement;
+  if(card.dataset.kids==='1') toggleKids(w); else if(card.dataset.detail==='1') toggleDetail(card); }
+
+function handleRecall(e, rc){
+  const role=(e.target.closest('[data-role]')||{}).dataset ? e.target.closest('[data-role]').dataset.role : null;
+  const st=RECALLS.get(rc.dataset.rc);
+  if(role==='reveal'){ st.revealed=true; renderRecall(rc); afterLayout(); }
+  else if(role==='again' || role==='good'){
+    const c=st.cards[st.idx]; let box=store.getBox(c.id);
+    box = role==='good'? Math.min(5,box+1) : Math.max(0,box-1);
+    store.setBox(c.id, box); st.idx=(st.idx+1)%st.cards.length; st.revealed=false;
+    renderRecall(rc); updateCardStats(); afterLayout();
+  }
+}
+tree.addEventListener('click', e=>{
+  const rc=e.target.closest('.recall'); if(rc){ handleRecall(e,rc); e.stopPropagation(); return; }
+  if(e.target.closest('.detail')) return;
+  const dbtn=e.target.closest('.dbtn'); const card=e.target.closest('.card'); if(!card) return;
+  if(dbtn){ toggleDetail(card); return; } primary(card);
+});
+tree.addEventListener('keydown', e=>{
+  if(e.target.closest('.recall')||e.target.closest('.detail')) return;
+  const card=e.target.closest('.card'); if(!card) return;
+  if(e.key==='Enter'||e.key===' '){ e.preventDefault(); primary(card); }
+});
+
+// ---------- Controls ----------
+function setLevel(L){ expandables.forEach(w=>{ const d=+w.dataset.depth;
+  if(d<L) w.classList.remove('collapsed'); else w.classList.add('collapsed'); });
+  updateAria(); afterLayout(); requestAnimationFrame(updateStats); }
+function expandAll(){ expandables.forEach(w=>w.classList.remove('collapsed')); updateAria(); afterLayout(); requestAnimationFrame(updateStats); }
+document.querySelector('.controls').addEventListener('click', e=>{
+  const b=e.target.closest('.btn[data-act]'); if(!b) return; const a=b.dataset.act;
+  if(a==='all') expandAll(); else if(a==='overview') setLevel(1); else if(a==='l2') setLevel(2); else if(a==='l3') setLevel(3);
+});
+
+// ---------- Search ----------
+const searchInput=document.getElementById('search');
+searchInput.addEventListener('input', ()=>{
+  const q=searchInput.value.trim().toLowerCase();
+  document.querySelectorAll('.nodewrap').forEach(w=>w.classList.remove('on-path'));
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('match'));
+  if(!q){ canvas.classList.remove('searching'); afterLayout(); requestAnimationFrame(updateStats); return; }
+  canvas.classList.add('searching');
+  document.querySelectorAll('.card').forEach(card=>{
+    const bag=(card.textContent||'').toLowerCase();
+    if(bag.includes(q)){ card.classList.add('match');
+      let w=card.parentElement;
+      while(w && w.classList && w.classList.contains('nodewrap')){ w.classList.add('on-path'); w.classList.remove('collapsed'); w=w.parentElement.closest('.nodewrap'); }
+    }
+  });
+  updateAria(); afterLayout(); requestAnimationFrame(updateStats);
+});
+
+// ---------- Stats ----------
+function updateStats(){
+  const open=expandables.filter(w=>!w.classList.contains('collapsed') && w.offsetParent!==null).length;
+  document.getElementById('stat-open').textContent=open;
+  document.getElementById('stat-total').textContent=expandables.length;
+  document.getElementById('stat-nodes').textContent=document.querySelectorAll('.nodewrap').length;
+  updateCardStats();
+}
+function updateCardStats(){
+  const sure=ALL_CARDS.filter(c=>store.getBox(c.id)>=MASTER_BOX).length;
+  document.getElementById('stat-cards').textContent=sure;
+  document.getElementById('stat-cards-total').textContent=ALL_CARDS.length;
+}
+
+// ---------- Drag to pan ----------
+let panS=null;
+canvas.addEventListener('pointerdown', e=>{
+  if(e.pointerType==='mouse' && e.button!==0) return;
+  if(e.target.closest('.card, button, input, a, .chip')) return;
+  panS={x:e.clientX,y:e.clientY,l:canvas.scrollLeft,t:canvas.scrollTop,id:e.pointerId};
+  try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+  canvas.classList.add('panning');
+});
+canvas.addEventListener('pointermove', e=>{
+  if(!panS || e.pointerId!==panS.id) return;
+  canvas.scrollLeft = panS.l-(e.clientX-panS.x);
+  canvas.scrollTop  = panS.t-(e.clientY-panS.y);
+});
+function endPan(e){ if(panS){ try{ canvas.releasePointerCapture(panS.id); }catch(_){} panS=null; canvas.classList.remove('panning'); } }
+canvas.addEventListener('pointerup', endPan);
+canvas.addEventListener('pointercancel', endPan);
+
+// ============================================================
+//  THEME-AUSWAHL  (Hell · Dunkel · Terminal · Synthwave)
+// ============================================================
+(function(){
+  const KEY='iti21_theme';
+  const btn=document.getElementById('theme-btn');
+  const menu=document.getElementById('theme-menu');
+  const root=document.documentElement;
+  function apply(name){
+    root.setAttribute('data-theme', name);
+    menu.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.theme===name));
+    try{ localStorage.setItem(KEY,name); }catch(e){}
+    requestAnimationFrame(drawLinks);
+    document.dispatchEvent(new CustomEvent('themechange'));
+  }
+  function openMenu(open){ menu.hidden=!open; btn.setAttribute('aria-expanded', open?'true':'false'); }
+  btn.addEventListener('click', e=>{ e.stopPropagation(); openMenu(menu.hidden); });
+  menu.addEventListener('click', e=>{ const b=e.target.closest('button[data-theme]'); if(!b) return; apply(b.dataset.theme); openMenu(false); });
+  document.addEventListener('click', e=>{ if(!e.target.closest('.theme-picker')) openMenu(false); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !menu.hidden){ openMenu(false); } });
+  let saved='light'; try{ saved=localStorage.getItem(KEY)||'light'; }catch(e){}
+  apply(saved);
+})();
+
+// ============================================================
+//  LERNMODUS (fokussiertes Wiedergabe-Training, Leitner-Queue)
+// ============================================================
+const overlay=document.getElementById('overlay');
+const ovStage=document.getElementById('ov-stage');
+const ovScope=document.getElementById('ov-scope');
+
+// --- Unscharfe Antwort-Bewertung (Stichwort-Treffer + Tippfehler-Toleranz) ---
+const PASS=60;
+function normalizeTxt(s){
+  return (s||'').toLowerCase().replace(/ß/g,'ss')
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+const STOP=new Set('der die das ein eine einen einem einer eines und oder aber ist sind war den dem des als auch nur bei aus von vom zu zum zur im in an auf mit fuer ueber unter vor nach so wie dass man wird werden kann muss soll sich es sie er ihr ihre sein seine dies diese dieser dann noch schon sowie bzw usw etc the a of to and or is are for with'.split(' '));
+function levDist(a,b){
+  const m=a.length,n=b.length; if(!m)return n; if(!n)return m;
+  let prev=[]; for(let j=0;j<=n;j++)prev[j]=j;
+  for(let i=1;i<=m;i++){ let cur=[i];
+    for(let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    prev=cur;
+  }
+  return prev[n];
+}
+function wordSim(a,b){ if(a===b)return 1; const d=levDist(a,b), m=Math.max(a.length,b.length); return m? 1-d/m : 0; }
+function contentTokens(s){ return normalizeTxt(s).split(' ').filter(w=>w.length>2 && !STOP.has(w)); }
+function keyTerms(ref){
+  const seen=new Set(), out=[];
+  (ref||'').split(/[\s/]+/).forEach(w=>{
+    const n=normalizeTxt(w);
+    if(n.length>2 && !STOP.has(n) && !seen.has(n)){
+      seen.add(n);
+      out.push({orig:(w.replace(/^[^0-9A-Za-zÄÖÜäöüß]+|[^0-9A-Za-zÄÖÜäöüß]+$/g,'')||w), norm:n});
+    }
+  });
+  return out;
+}
+function gradeAnswer(userText, refText){
+  const U=contentTokens(userText), terms=keyTerms(refText);
+  if(!terms.length){
+    const s=Math.round(wordSim(normalizeTxt(userText), normalizeTxt(refText))*100);
+    return {score:s, hits:[], misses:[]};
+  }
+  let credit=0; const hits=[], misses=[];
+  terms.forEach(t=>{
+    let best=0; for(const u of U){ const v=wordSim(t.norm,u); if(v>best){ best=v; if(best===1)break; } }
+    if(best>=0.82){ credit+=1; hits.push(t.orig); }
+    else if(best>=0.6){ credit+=0.5; hits.push(t.orig); }
+    else misses.push(t.orig);
+  });
+  return {score:Math.round(credit/terms.length*100), hits, misses};
+}
+
+const Study={
+  scope:'all', queue:[], cur:null, revealed:false, total:0, done:0, again:0,
+  mode:'write', graded:false, typed:'', score:0, hits:[], misses:[], passed:false,
+  pool(){ return ALL_CARDS.filter(c=> this.scope==='all' || c.bi===this.scope); },
+  start(scope){
+    if(scope!==undefined) this.scope=scope;
+    const p=this.pool().slice();
+    p.sort((a,b)=> (store.getBox(a.id)-store.getBox(b.id)) || (Math.random()-0.5));
+    this.queue=p; this.total=p.length; this.done=0; this.again=0; this.cur=null;
+    this.next();
+  },
+  resetCard(){ this.revealed=false; this.graded=false; this.typed=''; this.score=0; this.hits=[]; this.misses=[]; this.passed=false; },
+  next(){ this.resetCard(); this.cur=this.queue.shift()||null; this.render(); },
+  reveal(){ if(this.cur && !this.revealed){ this.revealed=true; this.graded=false; this.render(); } },
+  check(){
+    if(!this.cur || this.revealed) return;
+    const ta=document.getElementById('ov-answer');
+    this.typed = ta ? ta.value : '';
+    const g=gradeAnswer(this.typed, this.cur.a);
+    this.score=g.score; this.hits=g.hits; this.misses=g.misses;
+    this.passed = g.score>=PASS; this.graded=true; this.revealed=true;
+    this.render();
+  },
+  skip(){ if(this.cur && !this.revealed){ this.revealed=true; this.graded=false; this.typed=''; this.render(); } },
+  rate(good){
+    if(!this.cur) return; let box=store.getBox(this.cur.id);
+    box=good? Math.min(5,box+1) : Math.max(0,box-1); store.setBox(this.cur.id, box);
+    if(good) this.done++; else { this.again++; const pos=Math.min(4,this.queue.length); this.queue.splice(pos,0,this.cur); }
+    updateCardStats(); this.next();
+  },
+  remaining(){ return this.queue.length + (this.cur?1:0); },
+  render(){
+    const rem=this.remaining(), prog=this.total? Math.round((this.total-rem)/this.total*100):0;
+    document.getElementById('ov-bar').style.width=prog+'%';
+    const sure=this.pool().filter(c=>store.getBox(c.id)>=MASTER_BOX).length;
+    document.getElementById('ov-mastered').textContent='Sicher '+sure+' / '+this.pool().length;
+    if(!this.cur){
+      document.getElementById('ov-counter').textContent='Runde abgeschlossen';
+      ovStage.innerHTML='<div class="ov-done"><div class="ov-done-icon">✓</div>'+
+        '<div class="ov-done-title">Runde geschafft</div>'+
+        '<div class="ov-done-sub">'+this.done+' Karte(n) gewusst · '+this.again+' zur Wiederholung markiert.<br>Schwache Karten kommen in der nächsten Runde zuerst.</div>'+
+        '<button id="ov-restart">Neue Runde</button></div>';
+      return;
+    }
+    document.getElementById('ov-counter').textContent='Verbleibend '+rem+' · Gewusst '+this.done;
+    const c=this.cur;
+    let html='<div class="ov-card"><div class="ov-branch" style="color:'+c.color+'">'+esc(c.branch)+'</div>'+
+      '<div class="ov-q"></div>';
+    if(!this.revealed){
+      if(this.mode==='write'){
+        html+='<div class="ov-write">'+
+          '<textarea id="ov-answer" class="ov-input" spellcheck="false" placeholder="Antwort aus dem Gedächtnis eintippen …"></textarea>'+
+          '<div class="ov-writebtns"><button id="ov-check">Auswerten</button>'+
+          '<button id="ov-skip">Weiß ich nicht</button></div></div>';
+      } else {
+        html+='<div class="ov-actions"><button id="ov-reveal">Antwort zeigen</button></div>';
+      }
+    } else {
+      if(this.graded){
+        const cls=this.passed?'pass':(this.score>=40?'mid':'fail');
+        const sc=this.passed?'var(--ok-ink)':(this.score>=40?'#E0A83A':'var(--danger-ink)');
+        const verdict=this.passed?'Bestanden ✓':(this.score>=40?'Fast — knapp daneben':'Nochmal üben');
+        const total=this.hits.length+this.misses.length;
+        html+='<div class="score '+cls+'" style="--sc:'+sc+'">'+
+          '<div class="score-ring" style="--p:'+this.score+'"><b>'+this.score+'%</b></div>'+
+          '<div class="score-txt"><div class="score-verdict">'+verdict+'</div>'+
+          '<div class="score-sub">Stichwörter '+this.hits.length+' / '+total+' getroffen</div></div></div>';
+        if(total){
+          html+='<div class="kw">'+
+            this.hits.map(h=>'<span class="kw-tag kw-hit">'+esc(h)+'</span>').join('')+
+            this.misses.map(m=>'<span class="kw-tag kw-miss">'+esc(m)+'</span>').join('')+'</div>';
+        }
+        if(this.typed.trim()) html+='<div class="your-answer"><span class="yl">Deine Antwort</span>'+esc(this.typed)+'</div>';
+      }
+      html+='<div class="ov-a"></div>'+
+        '<div class="ov-actions"><div class="ov-rate">'+
+        '<button id="ov-again"'+(this.graded&&!this.passed?' class="ov-suggest"':'')+'><span class="k">1</span>Nochmal</button>'+
+        '<button id="ov-good"'+(this.graded&&this.passed?' class="ov-suggest"':'')+'><span class="k">2</span>Gewusst ✓</button></div></div>';
+    }
+    html+='</div>';
+    ovStage.innerHTML=html;
+    ovStage.querySelector('.ov-q').textContent=c.q;
+    const aEl=ovStage.querySelector('.ov-a'); if(aEl) aEl.innerHTML='<strong>Musterantwort:</strong> '+esc(c.a);
+    const ta=ovStage.querySelector('#ov-answer'); if(ta){ ta.value=this.typed||''; ta.focus(); }
+  }
+};
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function buildScopeChips(){
+  ovScope.innerHTML='';
+  const all=el('button','ov-chip active'); all.dataset.scope='all'; all.textContent='Alle Themen'; ovScope.appendChild(all);
+  BRANCHES.forEach((b,i)=>{ const ch=el('button','ov-chip'); ch.dataset.scope=String(i);
+    ch.textContent=b.title.replace(/ —.*$/,'').replace(/\s*\(.*\)/,''); ovScope.appendChild(ch); });
+}
+function selectScope(v){
+  ovScope.querySelectorAll('.ov-chip').forEach(c=>c.classList.toggle('active', c.dataset.scope===v));
+  Study.start(v==='all'?'all':(+v));
+}
+function openStudy(){ overlay.hidden=false; document.getElementById('ov-mode').checked = Study.mode!=='flip'; buildScopeChips(); Study.start('all'); }
+function closeStudy(){ overlay.hidden=true; }
+
+try{ Study.mode = localStorage.getItem('iti21_studymode')||'write'; }catch(_){ Study.mode='write'; }
+
+document.getElementById('study-btn').addEventListener('click', openStudy);
+document.getElementById('ov-mode').addEventListener('change', e=>{
+  Study.mode = e.target.checked ? 'write' : 'flip';
+  try{ localStorage.setItem('iti21_studymode', Study.mode); }catch(_){}
+  Study.resetCard(); Study.render();
+});
+overlay.addEventListener('click', e=>{
+  if(e.target===overlay || e.target.id==='ov-close'){ closeStudy(); return; }
+  if(e.target.closest('#ov-check')){ Study.check(); return; }
+  if(e.target.closest('#ov-skip')){ Study.skip(); return; }
+  if(e.target.closest('#ov-reveal')){ Study.reveal(); return; }
+  if(e.target.closest('#ov-again')){ Study.rate(false); return; }
+  if(e.target.closest('#ov-good')){ Study.rate(true); return; }
+  if(e.target.closest('#ov-restart')){ Study.start(); return; }
+  const chip=e.target.closest('.ov-chip'); if(chip){ selectScope(chip.dataset.scope); return; }
+});
+document.addEventListener('keydown', e=>{
+  if(overlay.hidden) return;
+  if(e.key==='Escape'){ closeStudy(); return; }
+  if(e.target && e.target.id==='ov-answer'){
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); Study.check(); }
+    return; // beim Tippen keine Shortcuts abfangen
+  }
+  if(!Study.revealed){
+    if(e.key===' ' && Study.mode!=='write'){ e.preventDefault(); Study.reveal(); }
+    return;
+  }
+  if(e.key==='Enter' && Study.graded){ e.preventDefault(); Study.rate(Study.passed); return; }
+  if(e.key==='1') Study.rate(false);
+  else if(e.key==='2') Study.rate(true);
+});
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('resize', afterLayout);
+setLevel(2);
+afterLayout(); updateStats();
+setTimeout(drawLinks, 120);
+
+// ============================================================
+//  NOTIZ-EDITOR  (verschiebbar · themefarben · in eigenes Fenster auslagerbar)
+// ============================================================
+(function(){
+  const SYMBOLS=['±','×','÷','·','√','∑','∏','∫','∞','≈','≠','≤','≥','≡','→','⇒','⇔','∧','∨','¬','⊕','∈','∉','⊆','⊂','∪','∩','∀','∃','∅','Δ','π','λ','µ','Ω','°','²','³','½'];
+  const FONTS={
+    sans:'ui-sans-serif,-apple-system,"Segoe UI",Roboto,system-ui,sans-serif',
+    serif:'Georgia,"Times New Roman","Iowan Old Style",serif',
+    mono:'ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Consolas,monospace'
+  };
+  const VARS=['--panel','--ink','--ink-2','--ink-soft','--field','--field-hover','--field-border','--line','--accent','--accent-ink','--chip-bg','--mono'];
+  const ed=document.getElementById('editor');
+  const head=document.getElementById('editor-head');
+  const ta=document.getElementById('editor-text');
+  const symWrap=document.getElementById('editor-symbols');
+  const fontSel=document.getElementById('editor-font');
+  const fsLabel=document.getElementById('editor-fs');
+  let fs=16, font='sans', popup=null;
+
+  try{
+    fs=parseInt(localStorage.getItem('iti21_editor_fs'),10)||16;
+    font=localStorage.getItem('iti21_editor_font')||'sans';
+    ta.value=localStorage.getItem('iti21_editor_text')||'';
+    const box=JSON.parse(localStorage.getItem('iti21_editor_box')||'null');
+    if(box && box.left){ ed.style.left=box.left; ed.style.top=box.top; ed.style.right='auto'; ed.style.bottom='auto'; ed.style.width=box.width; ed.style.height=box.height; }
+  }catch(e){}
+
+  SYMBOLS.forEach(s=>{ const b=document.createElement('button'); b.type='button'; b.textContent=s; b.dataset.s=s; symWrap.appendChild(b); });
+
+  function applyFont(){ ta.style.fontSize=fs+'px'; ta.style.fontFamily=FONTS[font]||FONTS.sans; fsLabel.textContent=fs; fontSel.value=font; }
+  function saveMeta(){ try{ localStorage.setItem('iti21_editor_fs',fs); localStorage.setItem('iti21_editor_font',font); }catch(e){} }
+  function saveText(){ try{ localStorage.setItem('iti21_editor_text', ta.value); }catch(e){} }
+  function saveBox(){ try{ localStorage.setItem('iti21_editor_box', JSON.stringify({left:ed.style.left,top:ed.style.top,width:ed.offsetWidth+'px',height:ed.offsetHeight+'px'})); }catch(e){} }
+  applyFont();
+
+  function pushToPopup(){ if(popup && !popup.closed){ try{ const pt=popup.document.getElementById('t'); if(pt && pt!==popup.document.activeElement && pt.value!==ta.value) pt.value=ta.value; }catch(e){} } }
+  function insert(s){ const a=ta.selectionStart,b=ta.selectionEnd; ta.setRangeText(s,a,b,'end'); ta.focus(); saveText(); pushToPopup(); }
+  symWrap.addEventListener('click', e=>{ const b=e.target.closest('button[data-s]'); if(b) insert(b.dataset.s); });
+  fontSel.addEventListener('change', e=>{ font=e.target.value; applyFont(); saveMeta(); });
+  document.getElementById('editor-fs-minus').addEventListener('click', ()=>{ fs=Math.max(11,fs-1); applyFont(); saveMeta(); });
+  document.getElementById('editor-fs-plus').addEventListener('click', ()=>{ fs=Math.min(48,fs+1); applyFont(); saveMeta(); });
+  ta.addEventListener('input', ()=>{ saveText(); pushToPopup(); });
+
+  function openEd(){ ed.hidden=false; ta.focus(); }
+  function closeEd(){ ed.hidden=true; }
+  document.getElementById('editor-btn').addEventListener('click', ()=>{ ed.hidden ? openEd() : closeEd(); });
+  document.getElementById('editor-close').addEventListener('click', closeEd);
+
+  // Verschieben per Kopfzeile
+  let drag=null;
+  head.addEventListener('pointerdown', e=>{
+    if(e.target.closest('button')) return;
+    const r=ed.getBoundingClientRect();
+    drag={dx:e.clientX-r.left, dy:e.clientY-r.top, id:e.pointerId};
+    try{ head.setPointerCapture(e.pointerId); }catch(_){}
+    head.classList.add('dragging');
+  });
+  head.addEventListener('pointermove', e=>{
+    if(!drag||e.pointerId!==drag.id) return;
+    let x=e.clientX-drag.dx, y=e.clientY-drag.dy;
+    x=Math.max(4, Math.min(x, window.innerWidth-ed.offsetWidth-4));
+    y=Math.max(4, Math.min(y, window.innerHeight-ed.offsetHeight-4));
+    ed.style.left=x+'px'; ed.style.top=y+'px'; ed.style.right='auto'; ed.style.bottom='auto';
+  });
+  function endDrag(){ if(drag){ try{ head.releasePointerCapture(drag.id); }catch(_){} drag=null; head.classList.remove('dragging'); saveBox(); } }
+  head.addEventListener('pointerup', endDrag);
+  head.addEventListener('pointercancel', endDrag);
+  if(window.ResizeObserver){ let tmr; new ResizeObserver(()=>{ clearTimeout(tmr); tmr=setTimeout(saveBox,300); }).observe(ed); }
+
+  // Farben ins ausgelagerte Fenster übernehmen
+  function themeVarsCss(){ const cs=getComputedStyle(document.documentElement); return VARS.map(v=>v+':'+cs.getPropertyValue(v).trim()).join(';'); }
+  function syncPopupTheme(){ if(popup && !popup.closed){ const cs=getComputedStyle(document.documentElement); VARS.forEach(v=>{ try{ popup.document.documentElement.style.setProperty(v, cs.getPropertyValue(v).trim()); }catch(e){} }); } }
+
+  function buildPopupHTML(){
+    const sym=SYMBOLS.map(s=>'<button type="button" data-s="'+s+'">'+s+'</button>').join('');
+    return '<!doctype html><html lang="de"><head><meta charset="utf-8">'+
+      '<meta name="viewport" content="width=device-width, initial-scale=1">'+
+      '<title>ITI21 · Notiz-Editor</title><style>'+
+      ':root{'+themeVarsCss()+'}*{box-sizing:border-box}'+
+      'body{margin:0;height:100vh;display:flex;flex-direction:column;background:var(--panel);color:var(--ink);'+
+      'font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,system-ui,sans-serif}'+
+      '.tb{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 11px;border-bottom:1px solid var(--line)}'+
+      '.tb select,.tb button{font-family:inherit;font-size:13px;color:var(--ink);background:var(--field);border:1px solid var(--field-border);border-radius:7px;padding:5px 9px;cursor:pointer}'+
+      '.tb b{font-family:var(--mono,monospace);min-width:26px;text-align:center;color:var(--ink-soft)}'+
+      '.fs{display:inline-flex;align-items:center;gap:6px;margin-left:auto}'+
+      '.sy{display:flex;flex-wrap:wrap;gap:4px;padding:8px 11px;border-bottom:1px solid var(--line);max-height:120px;overflow:auto}'+
+      '.sy button{min-width:30px;height:28px;font-size:15px;padding:0 6px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;cursor:pointer}'+
+      '.sy button:hover{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}'+
+      'textarea{flex:1;width:100%;border:none;outline:none;resize:none;padding:14px;background:var(--panel);color:var(--ink);line-height:1.6}'+
+      'textarea::placeholder{color:var(--ink-soft);opacity:.7}'+
+      '</style></head><body>'+
+      '<div class="tb"><select id="f"><option value="sans">Sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select>'+
+      '<span class="fs"><button id="fm" title="Kleiner">A&minus;</button><b id="fv"></b><button id="fp" title="Gr&ouml;&szlig;er">A&#65291;</button></span></div>'+
+      '<div class="sy">'+sym+'</div>'+
+      '<textarea id="t" spellcheck="false" placeholder="Notizen, Formeln, Merks&auml;tze &hellip;"></textarea>'+
+      '<'+'script>'+
+      '(function(){var FONTS='+JSON.stringify(FONTS)+';var t=document.getElementById("t");'+
+      'var fs='+fs+',ff='+JSON.stringify(font)+';'+
+      'try{t.value=localStorage.getItem("iti21_editor_text")||"";}catch(e){}'+
+      'function af(){t.style.fontSize=fs+"px";t.style.fontFamily=FONTS[ff]||FONTS.sans;document.getElementById("fv").textContent=fs;document.getElementById("f").value=ff;}af();'+
+      'function sv(){try{localStorage.setItem("iti21_editor_text",t.value);}catch(e){}}'+
+      'function sm(){try{localStorage.setItem("iti21_editor_fs",fs);localStorage.setItem("iti21_editor_font",ff);}catch(e){}}'+
+      'function ins(s){var a=t.selectionStart,b=t.selectionEnd;t.setRangeText(s,a,b,"end");t.focus();sv();}'+
+      'document.querySelector(".sy").addEventListener("click",function(e){var b=e.target.closest("button[data-s]");if(b)ins(b.dataset.s);});'+
+      'document.getElementById("fm").onclick=function(){fs=Math.max(11,fs-1);af();sm();};'+
+      'document.getElementById("fp").onclick=function(){fs=Math.min(48,fs+1);af();sm();};'+
+      'document.getElementById("f").onchange=function(e){ff=e.target.value;af();sm();};'+
+      't.addEventListener("input",sv);'+
+      'window.addEventListener("storage",function(e){if(e.key==="iti21_editor_text"&&document.activeElement!==t){t.value=e.newValue||"";}});'+
+      't.focus();})();'+
+      '<'+'/script></body></html>';
+  }
+  function popOut(){
+    if(popup && !popup.closed){ popup.focus(); return; }
+    popup=window.open('', 'iti21editor', 'width=520,height=580');
+    if(!popup){ alert('Das Editor-Fenster wurde vom Browser blockiert.\nBitte Pop-ups für diese Seite erlauben und erneut auf ↗ klicken.'); return; }
+    popup.document.open(); popup.document.write(buildPopupHTML()); popup.document.close();
+  }
+  document.getElementById('editor-pop').addEventListener('click', popOut);
+
+  // Andere Fenster → App synchronisieren (Text)
+  window.addEventListener('storage', e=>{ if(e.key==='iti21_editor_text' && document.activeElement!==ta){ ta.value=e.newValue||''; } });
+  // Theme-Wechsel → ausgelagertes Fenster umfärben
+  document.addEventListener('themechange', syncPopupTheme);
+})();
+</script>
+</body>
+</html>
