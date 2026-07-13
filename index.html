@@ -382,6 +382,33 @@
   .editor-text{flex:1; width:100%; border:none; outline:none; resize:none; padding:13px 14px;
     background:var(--panel); color:var(--ink); font-size:16px; line-height:1.6; font-family:var(--sans)}
   .editor-text::placeholder{color:var(--ink-soft); opacity:.7}
+
+  /* ---------- Fortschritt & Navigation ---------- */
+  #stat-cards-wrap{cursor:pointer}
+  #stat-cards-wrap:hover strong{color:var(--accent)}
+  @keyframes flashjump{0%,100%{box-shadow:var(--shadow)} 25%,75%{box-shadow:0 0 0 3px var(--accent), var(--shadow-hover)}}
+  .card.flash-jump{animation:flashjump 1.4s ease}
+  .prog-summary{display:flex; align-items:center; gap:16px; padding:2px 2px 16px; border-bottom:1px solid var(--line); margin-bottom:14px}
+  .prog-sum-title{font-size:.98rem; font-weight:650; color:var(--ink); letter-spacing:-.01em}
+  .prog-counts{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:9px; font-family:var(--mono); font-size:.72rem; font-weight:600}
+  .pc-ok{color:var(--ok-ink)} .pc-mid{color:#C6871A} .pc-new{color:var(--ink-soft)}
+  .prog-branches{display:flex; flex-direction:column; gap:15px; max-height:min(52vh,460px); overflow:auto; padding-right:4px}
+  .prog-branch-head{display:flex; align-items:center; gap:9px; margin-bottom:8px}
+  .prog-branch-jump{flex:1; min-width:0; display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:3px; border-radius:7px; transition:background .12s}
+  .prog-branch-jump:hover{background:var(--field-hover)}
+  .prog-branch-jump .dot{width:11px; height:11px; border-radius:3px; flex:none}
+  .prog-branch-title{font-size:.86rem; font-weight:600; color:var(--ink); text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .prog-branch-count{font-family:var(--mono); font-size:.72rem; color:var(--ink-soft); flex:none}
+  .prog-practice{flex:none; font-family:var(--sans); font-size:.68rem; font-weight:650; color:var(--accent);
+    background:color-mix(in srgb, var(--accent) 10%, var(--field)); border:1px solid color-mix(in srgb, var(--accent) 30%, var(--field));
+    border-radius:7px; padding:5px 9px; cursor:pointer; white-space:nowrap; transition:all .12s}
+  .prog-practice:hover{background:color-mix(in srgb, var(--accent) 20%, var(--field))}
+  .prog-cells{display:flex; flex-wrap:wrap; gap:5px}
+  .pcell{width:23px; height:23px; border-radius:6px; border:1px solid var(--line); cursor:pointer; position:relative; padding:0; transition:transform .1s}
+  .pcell:hover{transform:scale(1.18); z-index:1; border-color:var(--accent)}
+  .pcell.learning{border-color:color-mix(in srgb, var(--c) 45%, var(--line))}
+  .pcell.mastered{border-color:var(--c)}
+  .pcell.mastered::after{content:"✓"; position:absolute; inset:0; display:grid; place-items:center; font-size:12px; font-weight:800; color:#fff; text-shadow:0 1px 1.5px rgba(0,0,0,.4)}
 </style>
 </head>
 <body>
@@ -398,6 +425,7 @@
   <div class="controls">
     <button class="btn primary" id="study-btn"><span class="k">↺</span>Lernmodus</button>
     <button class="btn" id="editor-btn" title="Notiz-Editor öffnen">📝 Editor</button>
+    <button class="btn" id="progress-btn" title="Fortschritt &amp; Navigation">📊 Fortschritt</button>
     <div class="search">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input id="search" type="text" placeholder="Suchen &hellip;" autocomplete="off" spellcheck="false">
@@ -431,7 +459,7 @@
   <span class="sep"></span>
   <span><strong id="stat-nodes">0</strong> Knoten</span>
   <span class="sep"></span>
-  <span>Karten sicher: <strong id="stat-cards">0</strong> / <span id="stat-cards-total">0</span></span>
+  <span id="stat-cards-wrap" title="Fortschritt &amp; Navigation &ouml;ffnen">Karten sicher: <strong id="stat-cards">0</strong> / <span id="stat-cards-total">0</span></span>
   <span class="hint">Ziehen = verschieben &middot; Klick = auf-/zuklappen &middot; <kbd>Details</kbd> = &uuml;ben</span>
 </footer>
 
@@ -451,6 +479,20 @@
     <div class="prog-meta"><span id="ov-counter"></span><span id="ov-mastered"></span></div>
     <div class="stage" id="ov-stage"></div>
     <div class="ov-hint"><b>Enter</b> = auswerten / best&auml;tigen &middot; <b>1</b> = Nochmal &middot; <b>2</b> = Gewusst &middot; <b>Leertaste</b> = aufdecken (Flip) &middot; <b>Esc</b> = schlie&szlig;en</div>
+  </div>
+</div>
+
+<!-- Fortschritt & Navigation -->
+<div class="overlay" id="prog-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Fortschritt und Navigation">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Fortschritt &amp; Navigation</div>
+        <div class="modal-sub">Wo stehst du &middot; was sitzt schon</div>
+      </div>
+      <button class="modal-close" id="prog-close" aria-label="Schlie&szlig;en">&times;</button>
+    </div>
+    <div id="prog-body"></div>
   </div>
 </div>
 
@@ -841,7 +883,7 @@ function buildCard(node, ctx){
 }
 
 function buildNode(node, ctx){
-  const wrap=el('div','nodewrap'); wrap.dataset.depth=ctx.depth; wrap.dataset.color=ctx.color;
+  const wrap=el('div','nodewrap'); wrap.dataset.depth=ctx.depth; wrap.dataset.color=ctx.color; wrap.dataset.path=ctx.pathId;
   prepareCards(node, ctx);
   wrap.appendChild(buildCard(node, ctx));
   if(node.children && node.children.length){
@@ -1338,6 +1380,84 @@ setTimeout(drawLinks, 120);
   window.addEventListener('storage', e=>{ if(e.key==='iti21_editor_text' && document.activeElement!==ta){ ta.value=e.newValue||''; } });
   // Theme-Wechsel → ausgelagertes Fenster umfärben
   document.addEventListener('themechange', syncPopupTheme);
+})();
+
+// ============================================================
+//  FORTSCHRITT & NAVIGATION  (Übersicht: was sitzt, wo stehe ich)
+// ============================================================
+(function(){
+  const btn=document.getElementById('progress-btn');
+  const ov=document.getElementById('prog-overlay');
+  const body=document.getElementById('prog-body');
+  const escA=s=>esc(s).replace(/"/g,'&quot;');
+
+  function flash(card){ card.classList.remove('flash-jump'); void card.offsetWidth; card.classList.add('flash-jump'); setTimeout(()=>card.classList.remove('flash-jump'),1400); }
+  function jumpToBranch(i){
+    closeP();
+    const target=rootWrap.querySelectorAll(':scope > .kids > .nodewrap')[i]; if(!target) return;
+    rootWrap.classList.remove('collapsed'); target.classList.remove('collapsed');
+    updateAria(); afterLayout(); requestAnimationFrame(updateStats);
+    const card=target.querySelector(':scope > .card');
+    if(card){ requestAnimationFrame(()=>card.scrollIntoView({behavior:'smooth',block:'center',inline:'center'})); flash(card); }
+  }
+  function jumpToCard(id){
+    closeP();
+    const path=id.replace(/:\d+$/,'');
+    const target=tree.querySelector('.nodewrap[data-path="'+path+'"]'); if(!target) return;
+    let w=target; while(w){ w.classList.remove('collapsed'); w=w.parentElement?w.parentElement.closest('.nodewrap'):null; }
+    updateAria(); afterLayout(); requestAnimationFrame(updateStats);
+    const card=target.querySelector(':scope > .card');
+    if(card){ if(card.dataset.detail==='1') card.classList.add('open-detail');
+      requestAnimationFrame(()=>card.scrollIntoView({behavior:'smooth',block:'center',inline:'center'})); flash(card); }
+  }
+  function openStudyScoped(i){
+    overlay.hidden=false;
+    const m=document.getElementById('ov-mode'); if(m) m.checked = Study.mode!=='flip';
+    buildScopeChips(); selectScope(String(i));
+  }
+
+  function render(){
+    const total=ALL_CARDS.length;
+    const sure=ALL_CARDS.filter(c=>store.getBox(c.id)>=MASTER_BOX).length;
+    const learn=ALL_CARDS.filter(c=>{const b=store.getBox(c.id);return b>0&&b<MASTER_BOX;}).length;
+    const open=total-sure-learn, pct=total?Math.round(sure/total*100):0;
+    let h='<div class="prog-summary"><div class="score-ring" style="--p:'+pct+';--sc:var(--ok-ink)"><b>'+pct+'%</b></div>'+
+      '<div class="prog-sum-txt"><div class="prog-sum-title">'+sure+' von '+total+' Karten sitzen sicher</div>'+
+      '<div class="prog-counts"><span class="pc-ok">● Sicher '+sure+'</span>'+
+      '<span class="pc-mid">● In Arbeit '+learn+'</span><span class="pc-new">● Offen '+open+'</span></div></div></div>';
+    h+='<div class="prog-branches">';
+    BRANCHES.forEach((b,i)=>{
+      const cards=ALL_CARDS.filter(c=>c.bi===i); if(!cards.length) return;
+      const bs=cards.filter(c=>store.getBox(c.id)>=MASTER_BOX).length;
+      h+='<div class="prog-branch"><div class="prog-branch-head">'+
+        '<button class="prog-branch-jump" data-bi="'+i+'" title="Im Mindmap anzeigen"><span class="dot" style="background:'+b.color+'"></span>'+
+        '<span class="prog-branch-title">'+esc(b.title)+'</span></button>'+
+        '<span class="prog-branch-count">'+bs+' / '+cards.length+'</span>'+
+        '<button class="prog-practice" data-bi="'+i+'" title="Diesen Bereich üben">üben ↺</button></div>'+
+        '<div class="prog-cells">';
+      cards.forEach(c=>{
+        const box=store.getBox(c.id);
+        const cls='pcell'+(box>=MASTER_BOX?' mastered':(box>0?' learning':''));
+        const bg=box>=MASTER_BOX?b.color:(box>0?'color-mix(in srgb, '+b.color+' '+Math.round(box/5*100)+'%, var(--field))':'var(--track)');
+        const st=box>=MASTER_BOX?'sicher ✓':(box>0?'Box '+box+'/5':'neu');
+        h+='<button class="'+cls+'" data-id="'+c.id+'" style="--c:'+b.color+';background:'+bg+'" title="'+escA(c.node+' — '+c.q+' ('+st+')')+'"></button>';
+      });
+      h+='</div></div>';
+    });
+    h+='</div>';
+    body.innerHTML=h;
+  }
+  function openP(){ ov.hidden=false; render(); }
+  function closeP(){ ov.hidden=true; }
+  btn.addEventListener('click', openP);
+  const statWrap=document.getElementById('stat-cards-wrap'); if(statWrap) statWrap.addEventListener('click', openP);
+  ov.addEventListener('click', e=>{
+    if(e.target===ov || e.target.id==='prog-close'){ closeP(); return; }
+    const j=e.target.closest('.prog-branch-jump'); if(j){ jumpToBranch(+j.dataset.bi); return; }
+    const p=e.target.closest('.prog-practice'); if(p){ closeP(); openStudyScoped(+p.dataset.bi); return; }
+    const cell=e.target.closest('.pcell'); if(cell){ jumpToCard(cell.dataset.id); return; }
+  });
+  document.addEventListener('keydown', e=>{ if(!ov.hidden && e.key==='Escape') closeP(); });
 })();
 </script>
 </body>
