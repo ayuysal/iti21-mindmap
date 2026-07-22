@@ -1617,7 +1617,7 @@ setTimeout(drawLinks, 120);
   const cloud = {
     url:(typeof SUPABASE_URL!=='undefined')?SUPABASE_URL:'',
     key:(typeof SUPABASE_ANON!=='undefined')?SUPABASE_ANON:'',
-    code:FIXED, timer:null, status:'off', lastSync:0, ready:false,
+    code:FIXED, timer:null, status:'off', lastSync:0, ready:false, dirty:false,
     enabled(){ return !!(this.url && this.key && !/HIER_/.test(this.url) && !/HIER_/.test(this.key)); },
     async rpc(fn, body, keepalive){
       const r = await fetch(this.url.replace(/\/+$/,'')+'/rest/v1/rpc/'+fn, {
@@ -1646,6 +1646,7 @@ setTimeout(drawLinks, 120);
         this.mergeIn(await this.rpc('iti21_get', {p_code:this.code}));
         this.ready = true;                                                 // ab jetzt ist Hochladen sicher
         this.mergeIn(await this.rpc('iti21_save', {p_code:this.code, p_data:store.data}));
+        this.dirty = false;                                                // lokaler Stand == Server
         this.lastSync=Date.now(); this.setStatus('ok');
       }catch(e){ this.setStatus('err'); }
     },
@@ -1654,17 +1655,17 @@ setTimeout(drawLinks, 120);
       if(!this.enabled() || !this.ready) return;
       if(!keepalive){ try{ this.mergeIn(await this.rpc('iti21_get', {p_code:this.code})); }catch(e){} }
       const res = await this.rpc('iti21_save', {p_code:this.code, p_data:store.data}, keepalive);
-      if(!keepalive) this.mergeIn(res);
+      if(!keepalive){ this.mergeIn(res); this.dirty = false; }
       this.lastSync=Date.now();
     },
     push(){ if(!this.enabled() || !this.ready) return; clearTimeout(this.timer); this.setStatus('syncing');
       this.timer=setTimeout(()=>{ this.pushNow().then(()=>this.setStatus('ok')).catch(()=>this.setStatus('err')); }, 700); },
-    // beim Schließen/Wegwechseln offenen Upload absetzen (überlebt Unload); nur wenn schon geladen wurde
-    flush(){ clearTimeout(this.timer); this.timer=null; if(!this.enabled() || !this.ready) return; try{ this.pushNow(true).catch(()=>{}); }catch(e){} },
+    // Upload beim Schließen NUR wenn dieses Gerät wirklich etwas geändert hat → leerer/fremder Tab kann nie überschreiben
+    flush(){ clearTimeout(this.timer); this.timer=null; if(!this.enabled() || !this.ready || !this.dirty) return; try{ this.pushNow(true).catch(()=>{}); }catch(e){} },
     // einmalige Migration von früher manuell angelegtem Code
     async init(){
       if(!this.enabled()){ updateBtn(); return; }
-      store.onSave = ()=>this.push();
+      store.onSave = ()=>{ this.dirty = true; this.push(); };   // nur echte Änderungen markieren das Gerät als "geändert"
       let oldCode=null; try{ oldCode=localStorage.getItem('iti21_sync_code'); }catch(e){}
       try{
         if(oldCode && oldCode!==FIXED){
