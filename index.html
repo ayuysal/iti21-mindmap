@@ -1607,45 +1607,74 @@ setTimeout(drawLinks, 120);
 })();
 
 // ============================================================
-//  CLOUD-SYNC  (Supabase, geräteübergreifend per Sync-Code, ohne Login)
+//  CLOUD-SYNC  (Supabase — automatisch über alle Geräte, ohne Code, ohne Login)
+//  Ein fester, eingebauter Datensatz: jedes Gerät liest/schreibt denselben
+//  Stand. Kein Einrichten, kein Teilen. Identität steckt im Code (unten),
+//  NICHT im löschbaren Browser-Speicher → übersteht Cache-Löschen/Safari-ITP.
 // ============================================================
 (function(){
+  const FIXED = 'iti-sync-2f8a1c9e7b3d5064';   // fester gemeinsamer Datensatz für alle Geräte
   const cloud = {
     url:(typeof SUPABASE_URL!=='undefined')?SUPABASE_URL:'',
     key:(typeof SUPABASE_ANON!=='undefined')?SUPABASE_ANON:'',
-    code:null, timer:null, status:'off', lastSync:0,
+    code:FIXED, timer:null, status:'off', lastSync:0, ready:false,
     enabled(){ return !!(this.url && this.key && !/HIER_/.test(this.url) && !/HIER_/.test(this.key)); },
-    async rpc(fn, body){
+    async rpc(fn, body, keepalive){
       const r = await fetch(this.url.replace(/\/+$/,'')+'/rest/v1/rpc/'+fn, {
         method:'POST',
         headers:{ apikey:this.key, Authorization:'Bearer '+this.key, 'Content-Type':'application/json' },
-        body: JSON.stringify(body||{})
+        body: JSON.stringify(body||{}),
+        keepalive: !!keepalive
       });
       if(!r.ok) throw new Error('HTTP '+r.status);
       const t = await r.text(); return t ? JSON.parse(t) : null;
     },
     setStatus(s){ this.status=s; updateBtn(); if(ov && !ov.hidden) render(); },
+    // remote in den lokalen Stand mischen (höhere Box gewinnt → nie Verlust)
+    mergeIn(remote){
+      if(!remote || typeof remote!=='object') return false;
+      let changed=false;
+      for(const id in remote){ const rb=(remote[id]&&remote[id].box)||0; if(rb>store.getBox(id)){ store.data[id]={box:rb}; changed=true; } }
+      if(changed){ try{ localStorage.setItem(store.key, JSON.stringify(store.data)); }catch(e){}
+        if(typeof updateCardStats==='function') updateCardStats(); document.dispatchEvent(new CustomEvent('progresschanged')); }
+      return changed;
+    },
     async pull(){
-      if(!this.enabled() || !this.code) return;
+      if(!this.enabled()) return;
       this.setStatus('syncing');
       try{
-        const remote = await this.rpc('iti21_get', {p_code:this.code});
-        if(remote && typeof remote==='object'){
-          let changed=false;
-          for(const id in remote){ const rb=(remote[id]&&remote[id].box)||0; if(rb>store.getBox(id)){ store.data[id]={box:rb}; changed=true; } }
-          try{ localStorage.setItem(store.key, JSON.stringify(store.data)); }catch(e){}
-          if(changed){ if(typeof updateCardStats==='function') updateCardStats(); document.dispatchEvent(new CustomEvent('progresschanged')); }
-        }
-        await this.pushNow();
+        this.mergeIn(await this.rpc('iti21_get', {p_code:this.code}));
+        this.ready = true;                                                 // ab jetzt ist Hochladen sicher
+        this.mergeIn(await this.rpc('iti21_save', {p_code:this.code, p_data:store.data}));
         this.lastSync=Date.now(); this.setStatus('ok');
       }catch(e){ this.setStatus('err'); }
     },
-    async pushNow(){ if(!this.enabled() || !this.code) return; await this.rpc('iti21_save',{p_code:this.code, p_data:store.data}); this.lastSync=Date.now(); },
-    push(){ if(!this.enabled() || !this.code) return; clearTimeout(this.timer); this.setStatus('syncing');
-      this.timer=setTimeout(()=>{ this.pushNow().then(()=>this.setStatus('ok')).catch(()=>this.setStatus('err')); }, 1500); },
-    connect(code){ code=(code||'').trim(); if(!code) return; this.code=code; try{ localStorage.setItem('iti21_sync_code',code); }catch(e){} this.pull(); },
-    disconnect(){ this.code=null; try{ localStorage.removeItem('iti21_sync_code'); }catch(e){} clearTimeout(this.timer); this.setStatus('off'); },
-    genCode(){ let r; try{ r=crypto.randomUUID().replace(/-/g,''); }catch(e){ r=Date.now().toString(36)+Math.random().toString(36).slice(2); } return 'iti21-'+r.slice(0,16); }
+    // Vor dem Schreiben erst den neuesten Stand einmischen → ein Gerät kann den Stand nie verkleinern
+    async pushNow(keepalive){
+      if(!this.enabled() || !this.ready) return;
+      if(!keepalive){ try{ this.mergeIn(await this.rpc('iti21_get', {p_code:this.code})); }catch(e){} }
+      const res = await this.rpc('iti21_save', {p_code:this.code, p_data:store.data}, keepalive);
+      if(!keepalive) this.mergeIn(res);
+      this.lastSync=Date.now();
+    },
+    push(){ if(!this.enabled() || !this.ready) return; clearTimeout(this.timer); this.setStatus('syncing');
+      this.timer=setTimeout(()=>{ this.pushNow().then(()=>this.setStatus('ok')).catch(()=>this.setStatus('err')); }, 700); },
+    // beim Schließen/Wegwechseln offenen Upload absetzen (überlebt Unload); nur wenn schon geladen wurde
+    flush(){ clearTimeout(this.timer); this.timer=null; if(!this.enabled() || !this.ready) return; try{ this.pushNow(true).catch(()=>{}); }catch(e){} },
+    // einmalige Migration von früher manuell angelegtem Code
+    async init(){
+      if(!this.enabled()){ updateBtn(); return; }
+      store.onSave = ()=>this.push();
+      let oldCode=null; try{ oldCode=localStorage.getItem('iti21_sync_code'); }catch(e){}
+      try{
+        if(oldCode && oldCode!==FIXED){
+          this.setStatus('syncing');
+          try{ this.mergeIn(await this.rpc('iti21_get', {p_code:oldCode})); }catch(e){}
+          try{ localStorage.removeItem('iti21_sync_code'); }catch(e){}
+        }
+      }catch(e){}
+      this.pull();
+    }
   };
 
   const btn=document.getElementById('sync-btn');
@@ -1656,29 +1685,19 @@ setTimeout(drawLinks, 120);
     if(!btn) return;
     if(!cloud.enabled()){ btn.style.display='none'; return; }
     btn.style.display='';
-    const lbl={off:'☁ Sync einrichten', syncing:'☁ …', ok:'☁ Synchronisiert', err:'☁ Sync ⚠'};
-    btn.textContent = cloud.code ? (lbl[cloud.status]||'☁ Sync') : '☁ Sync einrichten';
-    btn.classList.toggle('sync-on', !!cloud.code && cloud.status==='ok');
+    const lbl={off:'☁ Sync', syncing:'☁ …', ok:'☁ Synchronisiert', err:'☁ Offline'};
+    btn.textContent = lbl[cloud.status]||'☁ Sync';
+    btn.classList.toggle('sync-on', cloud.status==='ok');
     btn.classList.toggle('sync-err', cloud.status==='err');
   }
   function render(){
     if(!body) return;
-    if(!cloud.code){
-      body.innerHTML =
-        '<p class="sync-lead">Speichere deinen Fortschritt ger&auml;te&uuml;bergreifend. Erstelle auf deinem Hauptger&auml;t einen Sync-Code &mdash; oder gib einen vorhandenen Code von einem anderen Ger&auml;t ein.</p>'+
-        '<button class="btn primary sync-wide" id="sync-create">Neuen Sync-Code erstellen</button>'+
-        '<div class="sync-or">&mdash; oder &mdash;</div>'+
-        '<div class="sync-enter"><input id="sync-input" placeholder="Vorhandenen Code eingeben &hellip;" spellcheck="false" autocomplete="off"><button class="btn" id="sync-connect">Verbinden</button></div>';
-    } else {
-      const stt={off:'&mdash;',syncing:'wird synchronisiert &hellip;',ok:'synchronisiert',err:'offline / Fehler'}[cloud.status]||'';
-      const t=cloud.lastSync?' &middot; '+new Date(cloud.lastSync).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'';
-      body.innerHTML =
-        '<div class="sync-status sync-'+cloud.status+'">&#9729; '+stt+t+'</div>'+
-        '<label class="sync-codelbl">Dein Sync-Code</label>'+
-        '<div class="sync-codebox"><code id="sync-code">'+esc(cloud.code)+'</code><button class="btn" id="sync-copy">Kopieren</button></div>'+
-        '<p class="sync-hint">Gib diesen Code auf deinen anderen Ger&auml;ten unter &bdquo;&#9729; Sync&ldquo; ein &mdash; dann ist dein Fortschritt &uuml;berall gleich.</p>'+
-        '<div class="sync-actions"><button class="btn" id="sync-now">Jetzt synchronisieren</button><button class="btn" id="sync-disc">Sync trennen</button></div>';
-    }
+    const stt={off:'bereit',syncing:'wird synchronisiert &hellip;',ok:'synchronisiert',err:'offline &ndash; erneut versuchen'}[cloud.status]||'';
+    const t=cloud.lastSync?' &middot; '+new Date(cloud.lastSync).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'';
+    body.innerHTML =
+      '<p class="sync-lead">Dein Lernfortschritt wird <b>automatisch</b> gespeichert und ist auf allen Ger&auml;ten gleich &mdash; du musst nichts einrichten oder teilen. Beim &Ouml;ffnen wird der neueste Stand geladen, nach jeder Bewertung sofort gesichert.</p>'+
+      '<div class="sync-status sync-'+cloud.status+'">&#9729; '+stt+t+'</div>'+
+      '<div class="sync-actions"><button class="btn" id="sync-now">Jetzt synchronisieren</button></div>';
   }
   function openSync(){ if(!ov) return; ov.hidden=false; render(); }
   function closeSync(){ if(ov) ov.hidden=true; }
@@ -1686,20 +1705,19 @@ setTimeout(drawLinks, 120);
   if(btn) btn.addEventListener('click', openSync);
   if(ov) ov.addEventListener('click', e=>{
     if(e.target===ov || e.target.id==='sync-close'){ closeSync(); return; }
-    if(e.target.id==='sync-create'){ cloud.connect(cloud.genCode()); return; }
-    if(e.target.id==='sync-connect'){ cloud.connect(document.getElementById('sync-input').value); return; }
-    if(e.target.id==='sync-copy'){ try{ navigator.clipboard.writeText(cloud.code); }catch(err){} const b=e.target,o=b.textContent; b.textContent='Kopiert ✓'; setTimeout(()=>{ b.textContent=o; },1200); return; }
     if(e.target.id==='sync-now'){ cloud.pull(); return; }
-    if(e.target.id==='sync-disc'){ cloud.disconnect(); return; }
   });
   document.addEventListener('keydown', e=>{ if(ov && !ov.hidden && e.key==='Escape') closeSync(); });
 
-  if(cloud.enabled()){
-    store.onSave = ()=>cloud.push();
-    try{ cloud.code = localStorage.getItem('iti21_sync_code')||null; }catch(e){}
-    if(cloud.code) cloud.pull();
-  }
-  updateBtn();
+  // Immer den neuesten Stand: beim Zur&uuml;ckkehren zur App neu laden, beim Weggehen sichern
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState==='visible') cloud.pull();
+    else cloud.flush();
+  });
+  window.addEventListener('pagehide', ()=>cloud.flush());
+  window.addEventListener('online', ()=>cloud.pull());
+
+  cloud.init();
 })();
 </script>
 </body>
