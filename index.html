@@ -430,6 +430,19 @@
   .sync-hint{font-size:.78rem; line-height:1.5; color:var(--ink-soft); margin:0 0 15px}
   .sync-actions{display:flex; gap:8px; flex-wrap:wrap}
 
+  /* ---------- Dashboard · Alle Fragen ---------- */
+  .dash-all{width:100%; justify-content:center; margin:2px 0 16px; font-size:.92rem; padding:12px}
+  .dash-fach{margin-bottom:15px}
+  .dash-fach-head{display:flex; align-items:center; gap:9px; padding-bottom:7px; margin-bottom:6px; border-bottom:1px solid var(--line)}
+  .dash-fach-name{font-family:var(--mono); font-size:.7rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink)}
+  .dash-fach-head .prog-branch-count{margin-left:auto}
+  .dash-heft{display:flex; align-items:center; gap:9px; padding:5px 2px}
+  .dash-heft-label{font-family:var(--mono); font-size:.68rem; font-weight:700; color:#fff; background:var(--root-bg); padding:3px 6px; border-radius:5px; flex:none}
+  .dash-heft-title{font-size:.8rem; color:var(--ink); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1}
+  .dash-bar{flex:none; width:60px; height:6px; border-radius:20px; background:var(--track); overflow:hidden}
+  .dash-bar i{display:block; height:100%; background:var(--ok-ink); border-radius:20px}
+  .dash-heft .prog-branch-count{flex:none; min-width:42px; text-align:right}
+
   /* ---------- Heft-Auswahl ---------- */
   .heft-picker{position:relative}
   button.brand-mark{border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:filter .13s}
@@ -471,6 +484,7 @@
     <button class="btn primary" id="study-btn"><span class="k">↺</span>Lernmodus</button>
     <button class="btn" id="editor-btn" title="Notiz-Editor öffnen">📝 Editor</button>
     <button class="btn" id="progress-btn" title="Fortschritt &amp; Navigation">📊 Fortschritt</button>
+    <button class="btn primary" id="dash-btn" title="Alle Fragen aller Hefte &amp; F&auml;cher an einem Ort">🎯 Alle Fragen</button>
     <button class="btn" id="sync-btn" title="Ger&auml;te-Sync – Fortschritt &uuml;berall speichern" style="display:none">☁ Sync</button>
     <div class="search">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -539,6 +553,20 @@
       <button class="modal-close" id="prog-close" aria-label="Schlie&szlig;en">&times;</button>
     </div>
     <div id="prog-body"></div>
+  </div>
+</div>
+
+<!-- Dashboard · Alle Fragen (alle Hefte & Fächer) -->
+<div class="overlay" id="dash-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Dashboard – alle Fragen">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">🎯 Alle Fragen</div>
+        <div class="modal-sub">Alle Hefte &amp; F&auml;cher &middot; kombiniert abfragen</div>
+      </div>
+      <button class="modal-close" id="dash-close" aria-label="Schlie&szlig;en">&times;</button>
+    </div>
+    <div id="dash-body"></div>
   </div>
 </div>
 
@@ -909,6 +937,7 @@ const canvas = document.getElementById('canvas');
 const NS = "http://www.w3.org/2000/svg";
 let expandables = [];
 let ALL_CARDS = [];
+let GLOBAL_CARDS = [];   // ALLE Karten aller Hefte/Fächer (für den Dashboard-Lernmodus)
 const RECALLS = new Map();
 let recallSeq = 0;
 
@@ -928,6 +957,34 @@ function prepareCards(node, ctx){
     });
   }
 }
+
+// Fach eines Heft-Keys (iti* → iti, gdi*/tgi* → tgdi)
+function subjectOf(key){ return key.slice(0,3)==='iti' ? 'iti' : 'tgdi'; }
+
+// Alle Karten EINES Hefts einsammeln — identische IDs/Fallback wie prepareCards, ohne DOM
+function collectHeftCards(heft, out){
+  const sub = subjectOf(heft.key);
+  (function walk(node, ctx){
+    let cards = node.cards;
+    if((!cards || !cards.length) && (node.note || (node.kp && node.kp.length))){
+      const back=[node.note].concat(node.kp||[]).filter(Boolean).join(' — ');
+      cards=[{q:'Erkläre: '+node.title, a:back}];
+    }
+    if(cards && cards.length && ctx.branchIdx>=0){
+      cards.forEach((c,i)=>{ out.push({ id:ctx.pathId+':'+i, q:c.q, a:c.a, color:ctx.color,
+        heft:heft.key, hlabel:heft.label, subject:sub, branch:heft.label+' · '+ctx.branchTitle, node:node.title }); });
+    }
+    if(node.children && node.children.length){
+      node.children.forEach((ch,i)=>{
+        const cctx = ctx.depth===0
+          ? {color:ch.color, depth:1, branchIdx:i, branchTitle:ch.title, pathId:ctx.pathId+':b'+i}
+          : {color:ctx.color, depth:ctx.depth+1, branchIdx:ctx.branchIdx, branchTitle:ctx.branchTitle, pathId:ctx.pathId+'.'+i};
+        walk(ch, cctx);
+      });
+    }
+  })(Object.assign({}, heft.root, {children:heft.branches}), {color:'var(--root-bg)', depth:0, branchIdx:-1, branchTitle:'', pathId:heft.key});
+}
+function buildGlobalCards(){ GLOBAL_CARDS=[]; HEFTE.forEach(h=>collectHeftCards(h, GLOBAL_CARDS)); return GLOBAL_CARDS; }
 
 function pips(box){ let s=''; for(let i=0;i<5;i++) s+='<i class="pip'+(i<box?' on':'')+'"></i>'; return s; }
 
@@ -1271,7 +1328,16 @@ function gradeAnswer(userText, refText){
 const Study={
   scope:'all', queue:[], cur:null, revealed:false, total:0, done:0, again:0,
   mode:'write', graded:false, typed:'', score:0, hits:[], misses:[], passed:false,
-  pool(){ return ALL_CARDS.filter(c=> this.scope==='all' || c.bi===this.scope); },
+  global:false, gscope:'all',
+  pool(){
+    if(this.global){
+      return GLOBAL_CARDS.filter(c=>
+        this.gscope==='all' ? true :
+        (this.gscope==='iti'||this.gscope==='tgdi') ? c.subject===this.gscope :
+        c.heft===this.gscope);
+    }
+    return ALL_CARDS.filter(c=> this.scope==='all' || c.bi===this.scope);
+  },
   start(scope){
     if(scope!==undefined) this.scope=scope;
     const p=this.pool().slice();
@@ -1358,15 +1424,25 @@ function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 
 function buildScopeChips(){
   ovScope.innerHTML='';
+  if(Study.global){
+    const add=(v,label)=>{ const ch=el('button','ov-chip'+(v===Study.gscope?' active':'')); ch.dataset.scope=v; ch.textContent=label; ovScope.appendChild(ch); };
+    add('all','Alle Fächer ('+GLOBAL_CARDS.length+')');
+    add('iti','ITI ('+GLOBAL_CARDS.filter(c=>c.subject==='iti').length+')');
+    add('tgdi','TGDI ('+GLOBAL_CARDS.filter(c=>c.subject==='tgdi').length+')');
+    ['iti','tgdi'].forEach(sub=>HEFTE.filter(h=>subjectOf(h.key)===sub).forEach(h=>{ add(h.key, h.label+' ('+GLOBAL_CARDS.filter(c=>c.heft===h.key).length+')'); }));
+    return;
+  }
   const all=el('button','ov-chip active'); all.dataset.scope='all'; all.textContent='Alle Themen'; ovScope.appendChild(all);
   BRANCHES.forEach((b,i)=>{ const ch=el('button','ov-chip'); ch.dataset.scope=String(i);
     ch.textContent=b.title.replace(/ —.*$/,'').replace(/\s*\(.*\)/,''); ovScope.appendChild(ch); });
 }
 function selectScope(v){
   ovScope.querySelectorAll('.ov-chip').forEach(c=>c.classList.toggle('active', c.dataset.scope===v));
-  Study.start(v==='all'?'all':(+v));
+  if(Study.global){ Study.gscope=v; Study.start(); }
+  else Study.start(v==='all'?'all':(+v));
 }
-function openStudy(){ overlay.hidden=false; document.getElementById('ov-mode').checked = Study.mode!=='flip'; buildScopeChips(); Study.start('all'); }
+function openStudy(){ Study.global=false; overlay.hidden=false; document.getElementById('ov-mode').checked = Study.mode!=='flip'; buildScopeChips(); Study.start('all'); }
+function openStudyGlobal(gscope){ Study.global=true; Study.gscope=gscope||'all'; overlay.hidden=false; document.getElementById('ov-mode').checked = Study.mode!=='flip'; buildScopeChips(); Study.start(); }
 function closeStudy(){ overlay.hidden=true; }
 
 try{ Study.mode = localStorage.getItem('iti21_studymode')||'write'; }catch(_){ Study.mode='write'; }
@@ -1583,6 +1659,7 @@ setTimeout(drawLinks, 120);
       requestAnimationFrame(()=>card.scrollIntoView({behavior:'smooth',block:'center',inline:'center'})); flash(card); }
   }
   function openStudyScoped(i){
+    Study.global=false;
     overlay.hidden=false;
     const m=document.getElementById('ov-mode'); if(m) m.checked = Study.mode!=='flip';
     buildScopeChips(); selectScope(String(i));
@@ -1746,6 +1823,54 @@ setTimeout(drawLinks, 120);
   window.addEventListener('online', ()=>cloud.pull());
 
   cloud.init();
+})();
+
+// ============================================================
+//  DASHBOARD · ALLE FRAGEN  (Gesamt-Übersicht + kombinierter Lernmodus über alle Hefte/Fächer)
+// ============================================================
+(function(){
+  buildGlobalCards();
+  const btn=document.getElementById('dash-btn');
+  const ov=document.getElementById('dash-overlay');
+  const body=document.getElementById('dash-body');
+  function stat(cards){ let s=0,l=0; cards.forEach(c=>{const b=store.getBox(c.id); if(b>=MASTER_BOX)s++; else if(b>0)l++;}); return {sure:s, learn:l, open:cards.length-s-l, total:cards.length}; }
+  function render(){
+    if(!body) return;
+    const T=stat(GLOBAL_CARDS); const pct=T.total?Math.round(T.sure/T.total*100):0;
+    let h='<div class="prog-summary"><div class="score-ring" style="--p:'+pct+';--sc:var(--ok-ink)"><b>'+pct+'%</b></div>'+
+      '<div class="prog-sum-txt"><div class="prog-sum-title">'+T.sure+' von '+T.total+' Karten sitzen sicher &mdash; alle F&auml;cher</div>'+
+      '<div class="prog-counts"><span class="pc-ok">● Sicher '+T.sure+'</span><span class="pc-mid">● In Arbeit '+T.learn+'</span><span class="pc-new">● Offen '+T.open+'</span></div></div></div>';
+    h+='<button class="btn primary dash-all" id="dash-all">▶ Alle '+T.total+' Fragen üben (schwächste zuerst)</button>';
+    [['iti','iti'],['tgdi','tgi']].forEach(pair=>{
+      const sub=pair[0], fk=pair[1];
+      const sc=GLOBAL_CARDS.filter(c=>c.subject===sub); if(!sc.length) return;
+      const ss=stat(sc); const f=FACH[fk]||{name:sub.toUpperCase(),full:''};
+      h+='<div class="dash-fach"><div class="dash-fach-head">'+
+        '<span class="dash-fach-name">'+f.name+(f.full?' · '+f.full:'')+'</span>'+
+        '<span class="prog-branch-count">'+ss.sure+' / '+ss.total+' sicher</span>'+
+        '<button class="prog-practice" data-g="'+sub+'">üben ↺</button></div>';
+      HEFTE.filter(hh=>subjectOf(hh.key)===sub).forEach(hh=>{
+        const hc=GLOBAL_CARDS.filter(c=>c.heft===hh.key); const hs=stat(hc); const p=hs.total?Math.round(hs.sure/hs.total*100):0;
+        h+='<div class="dash-heft"><span class="dash-heft-label">'+hh.label+'</span>'+
+          '<span class="dash-heft-title">'+esc(hh.h1)+'</span>'+
+          '<div class="dash-bar"><i style="width:'+p+'%"></i></div>'+
+          '<span class="prog-branch-count">'+hs.sure+'/'+hs.total+'</span>'+
+          '<button class="prog-practice" data-g="'+hh.key+'">üben</button></div>';
+      });
+      h+='</div>';
+    });
+    body.innerHTML=h;
+  }
+  function openDash(){ if(!ov) return; ov.hidden=false; render(); }
+  function closeDash(){ if(ov) ov.hidden=true; }
+  if(btn) btn.addEventListener('click', openDash);
+  if(ov) ov.addEventListener('click', e=>{
+    if(e.target===ov || e.target.id==='dash-close'){ closeDash(); return; }
+    if(e.target.id==='dash-all'){ closeDash(); openStudyGlobal('all'); return; }
+    const p=e.target.closest('.prog-practice'); if(p && p.dataset.g){ closeDash(); openStudyGlobal(p.dataset.g); return; }
+  });
+  document.addEventListener('keydown', e=>{ if(ov && !ov.hidden && e.key==='Escape') closeDash(); });
+  document.addEventListener('progresschanged', ()=>{ if(ov && !ov.hidden) render(); });
 })();
 </script>
 </body>
