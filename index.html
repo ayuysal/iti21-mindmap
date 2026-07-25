@@ -6,18 +6,19 @@
 <title>ITI21 · Mindmap + Wiedergabe-Training</title>
 <style>
   :root{
-    --bg:#EEF1F7; --canvas-dot:#D3DAE8;
-    --ink:#1B2434; --ink-2:#3A465F; --ink-soft:#57647C; --line:#D2D9E6; --card:#FFFFFF;
-    --root-bg:#111A2C; --root-ink:#EEF2FB; --root-kicker:#6B7BA0; --root-sub:#9AA8C6;
+    /* Hell = warmes Creme/Papier (augenschonend am Abend) */
+    --bg:#EBE3D2; --canvas-dot:#D8CDB6;
+    --ink:#2B2620; --ink-2:#4C4436; --ink-soft:#736752; --line:#DBCFB8; --card:#F8F1E6;
+    --root-bg:#2B2317; --root-ink:#F5EEE0; --root-kicker:#A5946F; --root-sub:#C3B392;
     --accent:#2D6CDF; --accent-ink:#FFFFFF;
-    --panel:#FFFFFF; --panel-blur:rgba(255,255,255,.85); --panel-blur-2:rgba(255,255,255,.55);
-    --field:#FFFFFF; --field-hover:#F7F9FC; --field-border:#D2D9E6;
-    --chip-bg:#F0F3F9; --track:#EDF0F6; --pip-off:#D5DCE8; --mix-base:#FFFFFF;
-    --danger-ink:#B23B57; --danger-bg:#FBEEF1; --danger-line:#F3CBD5;
-    --ok-ink:#1E8049; --ok-bg:#E7F6ED; --ok-line:#BFE6CE;
-    --overlay-bg:rgba(17,26,44,.55);
-    --shadow:0 1px 2px rgba(20,30,52,.06), 0 10px 22px -14px rgba(20,30,52,.28);
-    --shadow-hover:0 2px 4px rgba(20,30,52,.08), 0 16px 30px -14px rgba(20,30,52,.34);
+    --panel:#F8F1E6; --panel-blur:rgba(248,241,230,.85); --panel-blur-2:rgba(248,241,230,.55);
+    --field:#F8F1E6; --field-hover:#F0E7D5; --field-border:#DBCFB8;
+    --chip-bg:#EFE6D3; --track:#E7DCC7; --pip-off:#DACEB6; --mix-base:#F8F1E6;
+    --danger-ink:#B23B57; --danger-bg:#F6E6E2; --danger-line:#EACEC7;
+    --ok-ink:#1E8049; --ok-bg:#E9EFD9; --ok-line:#CDDCB2;
+    --overlay-bg:rgba(43,35,23,.5);
+    --shadow:0 1px 2px rgba(74,58,30,.07), 0 10px 22px -14px rgba(74,58,30,.32);
+    --shadow-hover:0 2px 4px rgba(74,58,30,.1), 0 16px 30px -14px rgba(74,58,30,.4);
     --sans:ui-sans-serif,-apple-system,"Segoe UI",Roboto,system-ui,"Helvetica Neue",Arial,sans-serif;
     --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Consolas,"Liberation Mono",monospace;
     --radius:13px;
@@ -301,7 +302,7 @@
   .theme-menu button .sw{width:22px; height:22px; border-radius:6px; flex:none; border:1px solid rgba(128,128,128,.35)}
   .theme-menu button .ck{margin-left:auto; color:var(--accent); opacity:0; font-weight:700}
   .theme-menu button.active .ck{opacity:1}
-  .sw-light{background:linear-gradient(135deg,#EEF1F7 50%,#2D6CDF 50%)}
+  .sw-light{background:linear-gradient(135deg,#F1E8D6 50%,#2B2317 50%)}
   .sw-dark{background:linear-gradient(135deg,#0E1420 50%,#3E82F0 50%)}
   .sw-terminal{background:linear-gradient(135deg,#05100A 50%,#22E38A 50%)}
   .sw-synth{background:linear-gradient(135deg,#160D2B 50%,#FF4D9D 50%)}
@@ -497,7 +498,7 @@
     <div class="theme-picker">
       <button class="btn" id="theme-btn" aria-haspopup="true" aria-expanded="false">&#127912; Design</button>
       <div class="theme-menu" id="theme-menu" hidden role="menu">
-        <button data-theme="light" role="menuitem"><span class="sw sw-light"></span>Hell<span class="ck">&#10003;</span></button>
+        <button data-theme="light" role="menuitem"><span class="sw sw-light"></span>Creme<span class="ck">&#10003;</span></button>
         <button data-theme="dark" role="menuitem"><span class="sw sw-dark"></span>Dunkel<span class="ck">&#10003;</span></button>
         <button data-theme="terminal" role="menuitem"><span class="sw sw-terminal"></span>Terminal<span class="ck">&#10003;</span></button>
         <button data-theme="synth" role="menuitem"><span class="sw sw-synth"></span>Synthwave<span class="ck">&#10003;</span></button>
