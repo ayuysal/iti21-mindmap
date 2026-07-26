@@ -444,6 +444,26 @@
   .dash-bar i{display:block; height:100%; background:var(--ok-ink); border-radius:20px}
   .dash-heft .prog-branch-count{flex:none; min-width:42px; text-align:right}
 
+  /* ---------- Lernplan ---------- */
+  .plan-hero{display:flex; align-items:center; gap:14px; padding:2px 2px 15px; border-bottom:1px solid var(--line); margin-bottom:14px}
+  .plan-today{flex:1; min-width:0}
+  .plan-countdown{font-family:var(--mono); font-size:.66rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft)}
+  .plan-duty{font-size:1.3rem; font-weight:700; color:var(--ink); letter-spacing:-.01em; margin:3px 0 2px}
+  .plan-duty b{color:var(--accent)}
+  .plan-split{font-family:var(--mono); font-size:.72rem; color:var(--ink-soft)}
+  .plan-status{font-family:var(--sans); font-size:.8rem; font-weight:650; margin-top:8px; padding:5px 9px; border-radius:8px; display:inline-block}
+  .plan-status.ok, .plan-status.done{color:var(--ok-ink); background:var(--ok-bg)}
+  .plan-status.warn{color:#C6871A; background:color-mix(in srgb,#E0A83A 14%,var(--mix-base))}
+  .plan-start{width:100%; justify-content:center; font-size:.95rem; padding:13px; margin-bottom:15px}
+  .plan-start[disabled]{opacity:.5; cursor:default}
+  .plan-cover{display:flex; align-items:center; gap:13px; margin-bottom:8px}
+  .plan-pace{font-family:var(--mono); font-size:.72rem; color:var(--ink-soft); margin-bottom:4px}
+  .plan-settings{display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:14px; padding-top:13px; border-top:1px solid var(--line); font-size:.76rem; color:var(--ink-soft)}
+  .plan-settings label{display:flex; align-items:center; gap:6px}
+  .plan-settings input, .plan-settings select{font-family:var(--sans); font-size:.8rem; color:var(--ink); background:var(--field); border:1px solid var(--field-border); border-radius:7px; padding:5px 8px}
+  .plan-reset{cursor:pointer; color:var(--danger-ink); background:none; border:none; text-decoration:underline; font-size:.75rem}
+  .plan-banner{font-family:var(--mono); font-size:.72rem; font-weight:700; color:var(--accent); background:color-mix(in srgb,var(--accent) 10%,var(--field)); border:1px solid color-mix(in srgb,var(--accent) 25%,var(--field)); border-radius:8px; padding:7px 11px; text-align:center}
+
   /* ---------- Heft-Auswahl ---------- */
   .heft-picker{position:relative}
   button.brand-mark{border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:filter .13s}
@@ -486,6 +506,7 @@
     <button class="btn" id="editor-btn" title="Notiz-Editor öffnen">📝 Editor</button>
     <button class="btn" id="progress-btn" title="Fortschritt &amp; Navigation">📊 Fortschritt</button>
     <button class="btn primary" id="dash-btn" title="Alle Fragen aller Hefte &amp; F&auml;cher an einem Ort">🎯 Alle Fragen</button>
+    <button class="btn primary" id="plan-btn" title="Lernplan: t&auml;gliches Pflichtpensum bis zur Pr&uuml;fung">📅 Lernplan</button>
     <button class="btn" id="sync-btn" title="Ger&auml;te-Sync – Fortschritt &uuml;berall speichern" style="display:none">☁ Sync</button>
     <div class="search">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -568,6 +589,20 @@
       <button class="modal-close" id="dash-close" aria-label="Schlie&szlig;en">&times;</button>
     </div>
     <div id="dash-body"></div>
+  </div>
+</div>
+
+<!-- Lernplan · tägliches Pflichtpensum -->
+<div class="overlay" id="plan-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Lernplan">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">📅 Lernplan</div>
+        <div class="modal-sub">T&auml;gliches Pflichtpensum bis zur Pr&uuml;fung</div>
+      </div>
+      <button class="modal-close" id="plan-close" aria-label="Schlie&szlig;en">&times;</button>
+    </div>
+    <div id="plan-body"></div>
   </div>
 </div>
 
@@ -1329,7 +1364,7 @@ function gradeAnswer(userText, refText){
 const Study={
   scope:'all', queue:[], cur:null, revealed:false, total:0, done:0, again:0,
   mode:'write', graded:false, typed:'', score:0, hits:[], misses:[], passed:false,
-  global:false, gscope:'all',
+  global:false, gscope:'all', planMode:false,
   pool(){
     if(this.global){
       return GLOBAL_CARDS.filter(c=>
@@ -1340,8 +1375,16 @@ const Study={
     return ALL_CARDS.filter(c=> this.scope==='all' || c.bi===this.scope);
   },
   start(scope){
+    this.planMode=false;
     if(scope!==undefined) this.scope=scope;
     const p=this.pool().slice();
+    p.sort((a,b)=> (store.getBox(a.id)-store.getBox(b.id)) || (Math.random()-0.5));
+    this.queue=p; this.total=p.length; this.done=0; this.again=0; this.cur=null;
+    this.next();
+  },
+  startList(cards){
+    this.planMode=true; this.global=true; this.gscope='all';
+    const p=cards.slice();
     p.sort((a,b)=> (store.getBox(a.id)-store.getBox(b.id)) || (Math.random()-0.5));
     this.queue=p; this.total=p.length; this.done=0; this.again=0; this.cur=null;
     this.next();
@@ -1360,8 +1403,9 @@ const Study={
   },
   skip(){ if(this.cur && !this.revealed){ this.revealed=true; this.graded=false; this.typed=''; this.render(); } },
   rate(good){
-    if(!this.cur) return; let box=store.getBox(this.cur.id);
-    box=good? Math.min(5,box+1) : Math.max(0,box-1); store.setBox(this.cur.id, box);
+    if(!this.cur) return; const id=this.cur.id; let box=store.getBox(id);
+    box=good? Math.min(5,box+1) : Math.max(0,box-1); store.setBox(id, box);
+    document.dispatchEvent(new CustomEvent('carddone',{detail:id}));
     if(good) this.done++; else { this.again++; const pos=Math.min(4,this.queue.length); this.queue.splice(pos,0,this.cur); }
     updateCardStats(); this.next();
   },
@@ -1461,7 +1505,7 @@ overlay.addEventListener('click', e=>{
   if(e.target.closest('#ov-reveal')){ Study.reveal(); return; }
   if(e.target.closest('#ov-again')){ Study.rate(false); return; }
   if(e.target.closest('#ov-good')){ Study.rate(true); return; }
-  if(e.target.closest('#ov-restart')){ Study.start(); return; }
+  if(e.target.closest('#ov-restart')){ if(Study.planMode){ closeStudy(); document.dispatchEvent(new CustomEvent('planopen')); } else Study.start(); return; }
   const chip=e.target.closest('.ov-chip'); if(chip){ selectScope(chip.dataset.scope); return; }
 });
 document.addEventListener('keydown', e=>{
@@ -1872,6 +1916,129 @@ setTimeout(drawLinks, 120);
   });
   document.addEventListener('keydown', e=>{ if(ov && !ov.hidden && e.key==='Escape') closeDash(); });
   document.addEventListener('progresschanged', ()=>{ if(ov && !ov.hidden) render(); });
+})();
+
+// ============================================================
+//  LERNPLAN · tägliches Pflichtpensum bis zur Prüfung
+//  Plan/Termine LOKAL pro Gerät; Lernfortschritt (Box) bleibt geteilt.
+// ============================================================
+(function(){
+  const DAY=86400000;
+  let cfg=null, seen={};
+  try{ cfg=JSON.parse(localStorage.getItem('iti21_plan')||'null'); }catch(e){}
+  try{ seen=JSON.parse(localStorage.getItem('iti21_plan_seen')||'{}')||{}; }catch(e){ seen={}; }
+  function saveCfg(){ try{ localStorage.setItem('iti21_plan', JSON.stringify(cfg)); }catch(e){} }
+  function saveSeen(){ try{ localStorage.setItem('iti21_plan_seen', JSON.stringify(seen)); }catch(e){} }
+  const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  function todayStr(){ return fmt(new Date()); }
+  function parseD(s){ const p=(s||'').split('-').map(Number); return new Date(p[0],(p[1]||1)-1,p[2]||1); }
+  function between(a,b){ return Math.round((parseD(b)-parseD(a))/DAY); }
+  function ensureCfg(){
+    if(!cfg || !cfg.start || !cfg.exam){ const t=new Date(); cfg={ start:fmt(t), exam:fmt(new Date(t.getTime()+10*DAY)), scope:'all', target:2 }; saveCfg(); }
+    if(!cfg.target) cfg.target=2;
+    if(!cfg.scope) cfg.scope='all';
+    return cfg;
+  }
+  function scopeCards(){ if(!GLOBAL_CARDS.length) buildGlobalCards(); const s=cfg.scope;
+    return GLOBAL_CARDS.filter(c=> s==='all'?true : (s==='iti'||s==='tgdi')?c.subject===s : c.heft===s); }
+  function dayIdx(){ return Math.max(0, between(cfg.start, todayStr())); }
+  function totalDays(){ return Math.max(1, between(cfg.start, cfg.exam)); }
+  const interval = box => box<=0?1 : box===1?2 : box===2?4 : 999;
+  function classify(c){
+    const box=store.getBox(c.id);
+    if(box>=cfg.target) return 'done';
+    const last=seen[c.id];
+    if(last===undefined) return box>0 ? 'due' : 'new';
+    return between(last, todayStr())>=interval(box) ? 'due' : 'wait';
+  }
+  // Tagesziel EINMAL pro Tag festschreiben (verbleibende Abrufe / Resttage), damit es beim Abarbeiten runterzählt
+  function goalForToday(){
+    const pool=scopeCards();
+    const remainTouches=pool.reduce((s,c)=> s+Math.max(0,cfg.target-store.getBox(c.id)),0);
+    const left=Math.max(1, totalDays()-dayIdx());
+    if(cfg.gd!==todayStr()){ cfg.gd=todayStr(); cfg.gn=Math.min(remainTouches, Math.ceil(remainTouches/left)); saveCfg(); }
+    return cfg.gn||0;
+  }
+  function isNew(c){ return seen[c.id]===undefined && store.getBox(c.id)===0; }
+  function todaySet(){
+    const pool=scopeCards();
+    const goal=goalForToday();
+    const doneToday=pool.filter(c=> seen[c.id]===todayStr()).length;   // heute schon geübt
+    const remainingToday=Math.max(0, goal-doneToday);
+    const dueNow=pool.filter(c=>{
+      if(store.getBox(c.id)>=cfg.target) return false;      // schon prüfungsfest
+      if(seen[c.id]===todayStr()) return false;             // heute schon dran
+      const last=seen[c.id];
+      if(last===undefined) return true;                     // neu oder Übernahme
+      return between(last,todayStr())>=interval(store.getBox(c.id));   // Wiederholung fällig
+    });
+    const reviews=dueNow.filter(c=>!isNew(c)).sort((a,b)=> store.getBox(a.id)-store.getBox(b.id));
+    const news=dueNow.filter(isNew);
+    const set=reviews.concat(news).slice(0, remainingToday);   // Wiederholung zuerst, dann neu — gedeckelt
+    let newN=0,dueN=0; set.forEach(c=> isNew(c)?newN++:dueN++);
+    const done=pool.filter(c=> store.getBox(c.id)>=cfg.target).length;
+    return { set, newN, dueN, done, total:pool.length, notDone:pool.length-done, goal, doneToday };
+  }
+  function mark(id){ if(id){ seen[id]=todayStr(); saveSeen(); } }
+
+  const btn=document.getElementById('plan-btn');
+  const ov=document.getElementById('plan-overlay');
+  const body=document.getElementById('plan-body');
+
+  function render(){
+    if(!body) return; ensureCfg();
+    const t=todaySet();
+    const di=dayIdx(), td=totalDays(), left=Math.max(0, td-di);
+    const pct=t.total?Math.round(t.done/t.total*100):0;
+    const remainTouches=scopeCards().reduce((s,c)=> s+Math.max(0, cfg.target-store.getBox(c.id)), 0);
+    const perDay=left>0?Math.ceil(remainTouches/left):remainTouches;
+    let sc, st;
+    if(di>=td){ sc='warn'; st=t.done>=Math.round(t.total*0.95)?'🎉 Prüfungsbereit!':'⏰ Prüfungszeitraum erreicht – heute alles Offene abarbeiten'; }
+    else if(t.set.length===0){ sc='done'; st='✓ Heute-Pensum geschafft – morgen geht es weiter'; }
+    else if(t.set.length > Math.max(perDay*1.4, perDay+40)){ sc='warn'; st='⚠ Rückstand – heute '+t.set.length+' fällig (Ziel-Tempo ~'+perDay+'/Tag)'; }
+    else { sc='ok'; st='Auf Kurs – mach heute dein Pflichtpensum'; }
+    let h='<div class="plan-hero"><div class="score-ring" style="--p:'+pct+';--sc:var(--ok-ink)"><b>'+pct+'%</b></div>'+
+      '<div class="plan-today">'+
+        '<div class="plan-countdown">Tag '+Math.min(di+1,td)+' von '+td+' · noch '+left+' Tag'+(left===1?'':'e')+' bis Prüfung</div>'+
+        '<div class="plan-duty">Heute Pflicht: <b>'+t.set.length+'</b> Karten</div>'+
+        '<div class="plan-split">'+t.newN+' neu · '+t.dueN+' Wiederholung</div>'+
+        '<div class="plan-status '+sc+'">'+st+'</div>'+
+      '</div></div>';
+    h+='<button class="btn primary plan-start" id="plan-start"'+(t.set.length===0?' disabled':'')+'>▶ Heute-Pensum starten'+(t.set.length?' ('+t.set.length+')':'')+'</button>';
+    h+='<div class="plan-pace">Prüfungsfest ('+cfg.target+'× gewusst): <b style="color:var(--ok-ink)">'+t.done+'</b> / '+t.total+' · offen: '+t.notDone+' · nötiges Tempo bis Prüfung: ~'+perDay+' Abrufe/Tag</div>';
+    h+='<div class="plan-settings">'+
+      '<label>Prüfung: <input type="date" id="plan-exam" value="'+cfg.exam+'"></label>'+
+      '<label>Umfang: <select id="plan-scope"><option value="all"'+(cfg.scope==='all'?' selected':'')+'>Beide Fächer</option><option value="iti"'+(cfg.scope==='iti'?' selected':'')+'>Nur ITI</option><option value="tgdi"'+(cfg.scope==='tgdi'?' selected':'')+'>Nur TGDI</option></select></label>'+
+      '<label>Ziel/Karte: <select id="plan-target"><option value="1"'+(cfg.target===1?' selected':'')+'>1× gewusst</option><option value="2"'+(cfg.target===2?' selected':'')+'>2× gewusst</option><option value="3"'+(cfg.target===3?' selected':'')+'>3× gewusst</option></select></label>'+
+      '<button class="plan-reset" id="plan-reset">Zeitplan ab heute neu starten</button>'+
+    '</div>';
+    body.innerHTML=h;
+  }
+  function openPlan(){ if(!ov) return; ensureCfg(); ov.hidden=false; render(); }
+  function closePlan(){ if(ov) ov.hidden=true; }
+  function startToday(){
+    const t=todaySet(); if(!t.set.length) return;
+    closePlan();
+    overlay.hidden=false;
+    const m=document.getElementById('ov-mode'); if(m) m.checked = Study.mode!=='flip';
+    ovScope.innerHTML='<div class="plan-banner">📅 Tag '+Math.min(dayIdx()+1,totalDays())+' · Heute-Pensum ('+t.set.length+' Karten)</div>';
+    Study.startList(t.set);
+  }
+
+  if(btn) btn.addEventListener('click', openPlan);
+  if(ov) ov.addEventListener('click', e=>{
+    if(e.target===ov || e.target.id==='plan-close'){ closePlan(); return; }
+    if(e.target.id==='plan-start'){ startToday(); return; }
+    if(e.target.id==='plan-reset'){ if(confirm('Zeitplan ab heute neu starten? (Dein Lernfortschritt/Boxen bleiben erhalten – nur die Tageseinteilung wird zurückgesetzt.)')){ seen={}; saveSeen(); cfg.start=todayStr(); cfg.gd=null; saveCfg(); render(); } return; }
+  });
+  if(ov) ov.addEventListener('change', e=>{
+    if(e.target.id==='plan-exam' && e.target.value){ cfg.exam=e.target.value; cfg.gd=null; saveCfg(); render(); }
+    else if(e.target.id==='plan-scope'){ cfg.scope=e.target.value; cfg.gd=null; saveCfg(); render(); }
+    else if(e.target.id==='plan-target'){ cfg.target=+e.target.value; cfg.gd=null; saveCfg(); render(); }
+  });
+  document.addEventListener('keydown', e=>{ if(ov && !ov.hidden && e.key==='Escape') closePlan(); });
+  document.addEventListener('planopen', openPlan);
+  document.addEventListener('carddone', e=>{ mark(e && e.detail); if(ov && !ov.hidden) render(); });
 })();
 </script>
 </body>
