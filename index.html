@@ -472,6 +472,8 @@
   .plan-settings{display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:14px; padding-top:13px; border-top:1px solid var(--line); font-size:.76rem; color:var(--ink-soft)}
   .plan-settings label{display:flex; align-items:center; gap:6px}
   .plan-settings input, .plan-settings select{font-family:var(--sans); font-size:.8rem; color:var(--ink); background:var(--field); border:1px solid var(--field-border); border-radius:7px; padding:5px 8px}
+  .plan-settings input[type=checkbox]{width:16px; height:16px; padding:0; accent-color:var(--accent); cursor:pointer}
+  .plan-atomic{cursor:pointer}
   .plan-reset{cursor:pointer; color:var(--danger-ink); background:none; border:none; text-decoration:underline; font-size:.75rem}
   .plan-banner{font-family:var(--mono); font-size:.72rem; font-weight:700; color:var(--accent); background:color-mix(in srgb,var(--accent) 10%,var(--field)); border:1px solid color-mix(in srgb,var(--accent) 25%,var(--field)); border-radius:8px; padding:7px 11px; text-align:center}
 
@@ -957,7 +959,7 @@ const store = {
   key:'iti21_mindmap_srs_v1', data:{}, onSave:null,
   load(){ try{ this.data = JSON.parse(localStorage.getItem(this.key)) || {}; }catch(e){ this.data = {}; } },
   save(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} if(this.onSave) this.onSave(); },
-  getBox(id){ return (this.data[id] && this.data[id].box) || 0; },
+  getBox(id){ if(this.data[id]) return this.data[id].box||0; const t=id.indexOf('~'); if(t>0){ const p=id.slice(0,t); if(this.data[p]) return this.data[p].box||0; } return 0; },   // Teilkarte erbt Stand der Ursprungskarte, bis sie selbst bewertet wird
   setBox(id, box){ this.data[id] = { box }; this.save(); }
 };
 store.load();
@@ -988,6 +990,44 @@ let GLOBAL_CARDS = [];   // ALLE Karten aller Hefte/Fächer (für den Dashboard-
 const RECALLS = new Map();
 let recallSeq = 0;
 
+// ── Ein-Satz-Karten: mehrteilige Antworten in atomare Teilkarten aufteilen ──
+let ATOMIC = true;
+try{ if(localStorage.getItem('iti21_atomic')==='0') ATOMIC=false; }catch(e){}
+function _wc(s){ return String(s).trim().split(/\s+/).length; }
+// Einen Kernpunkt in {Stichwort (cue), Antwort (ans)} zerlegen — oder als Überschrift (header) erkennen
+function pointToQA(pt){
+  pt=String(pt).trim();
+  if(/:\s*$/.test(pt)) return {header:pt.replace(/:\s*$/,'').trim()};                 // reine Überschrift
+  let m=pt.match(/^([A-Za-zΗ][^=]{0,28}?)\s*=\s*(.+)$/);                               // Formel: LHS = …
+  if(m && /[()A-Za-z]/.test(m[1]) && _wc(m[1])<=5) return {cue:m[1].trim(), ans:m[2].trim()};
+  m=pt.match(/^([^:]{2,55}?):\s+(\S.*)$/);                                             // Label: …
+  if(m && _wc(m[1])<=8) return {cue:m[1].trim(), ans:m[2].trim()};
+  m=pt.match(/^(.{2,45}?)\s+[–—]\s+(\S.*)$/);                                          // Begriff – Definition
+  if(m && _wc(m[1])<=7) return {cue:m[1].trim(), ans:m[2].trim()};
+  m=pt.match(/^([A-ZÄÖÜ][\wÄÖÜäöüß/.\-]{0,22}(?:\s[\wÄÖÜäöüß/.\-]+){0,1}),\s+((?:wenn|falls|für|bei|sobald|nur|sofern)\b.*)$/);
+  if(m) return {cue:m[1].trim(), ans:pt};                                             // "TCP, wenn …"
+  return {cue:null, ans:pt};                                                          // Fließtext/Formel ohne Stichwort
+}
+// Baut aus (baseId,q,a) eine Liste [{id,q,a}] — eine je Kernpunkt, oder 1 Element wenn nicht geteilt wird
+function atomize(baseId, q, a){
+  if(!ATOMIC) return [{id:baseId, q:q, a:a}];
+  const pts=splitPoints(a); if(pts.length<2) return [{id:baseId, q:q, a:a}];
+  let section=''; const qa=[];
+  pts.forEach(pt=>{ const r=pointToQA(pt);
+    if(r.header){ section=r.header.split(/\s*\(/)[0].trim(); return; }                 // Überschrift wird zum Abschnitts-Präfix
+    let cue=r.cue; if(section) cue=cue?(section+' → '+cue):section;
+    qa.push({cue:cue, ans:r.ans});
+  });
+  if(qa.length<2) return [{id:baseId, q:q, a:a}];
+  const cnt={}; qa.forEach(x=>{ if(x.cue) cnt[x.cue]=(cnt[x.cue]||0)+1; });
+  const seen={}, n=qa.length;
+  return qa.map((x,i)=>{ let cue=x.cue;
+    if(cue && cnt[cue]>1){ seen[cue]=(seen[cue]||0)+1; cue=cue+' '+seen[cue]; }        // gleiche Stichwörter durchnummerieren
+    const suf=cue?('  ▸ '+cue):('  ▸ ('+(i+1)+'/'+n+')');
+    return {id:baseId+'~'+i, q:q+suf, a:x.ans};
+  });
+}
+
 function el(t,c,h){ const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e; }
 
 function prepareCards(node, ctx){
@@ -997,10 +1037,12 @@ function prepareCards(node, ctx){
     cards=[{q:'Erkläre: '+node.title, a:back}];
   }
   if(cards && cards.length){
-    node._cards = cards.map((c,i)=>{
-      const id = ctx.pathId+':'+i;
-      if(ctx.branchIdx>=0) ALL_CARDS.push({id,q:c.q,a:c.a,bi:ctx.branchIdx,color:ctx.color,branch:ctx.branchTitle,node:node.title});
-      return {id,q:c.q,a:c.a};
+    node._cards = [];
+    cards.forEach((c,i)=>{
+      atomize(ctx.pathId+':'+i, c.q, c.a).forEach(sc=>{
+        if(ctx.branchIdx>=0) ALL_CARDS.push({id:sc.id,q:sc.q,a:sc.a,bi:ctx.branchIdx,color:ctx.color,branch:ctx.branchTitle,node:node.title});
+        node._cards.push({id:sc.id,q:sc.q,a:sc.a});
+      });
     });
   }
 }
@@ -1018,8 +1060,8 @@ function collectHeftCards(heft, out){
       cards=[{q:'Erkläre: '+node.title, a:back}];
     }
     if(cards && cards.length && ctx.branchIdx>=0){
-      cards.forEach((c,i)=>{ out.push({ id:ctx.pathId+':'+i, q:c.q, a:c.a, color:ctx.color,
-        heft:heft.key, hlabel:heft.label, subject:sub, branch:heft.label+' · '+ctx.branchTitle, node:node.title }); });
+      cards.forEach((c,i)=>{ atomize(ctx.pathId+':'+i, c.q, c.a).forEach(sc=>{ out.push({ id:sc.id, q:sc.q, a:sc.a, color:ctx.color,
+        heft:heft.key, hlabel:heft.label, subject:sub, branch:heft.label+' · '+ctx.branchTitle, node:node.title }); }); });
     }
     if(node.children && node.children.length){
       node.children.forEach((ch,i)=>{
@@ -1333,6 +1375,20 @@ function normalizeTxt(s){
     .normalize('NFD').replace(/[̀-ͯ]/g,'')
     .replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
 }
+// Formel-Normalisierung: Mathe-Zeichen bleiben erhalten (für zeichenweisen Vergleich von Formel-Antworten)
+function formulaNorm(s){
+  s=(s||'').toLowerCase();
+  const sub='₀₁₂₃₄₅₆₇₈₉', sup='⁰¹²³⁴⁵⁶⁷⁸⁹';
+  s=s.replace(/[₀-₉]/g,d=>String(sub.indexOf(d))).replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g,d=>String(sup.indexOf(d)));
+  return s.replace(/[−–—]/g,'-').replace(/[·∙⋅×]/g,'*')
+          .replace(/\s+/g,'').replace(/[^a-z0-9=+\-*/^().,;|]/g,'');
+}
+function isFormulaRef(ref){
+  const s=String(ref), w=(s.match(/[A-Za-zÄÖÜäöü]{3,}/g)||[]).length;
+  if(/=/.test(s) && w<=3) return true;                       // Gleichung mit wenig Text
+  if(w<=1 && /[()]/.test(s) && /[+\-−–*·/^]/.test(s)) return true;  // formelartig ohne "=" (z. B. "H(X,Y) − H(Y)")
+  return false;
+}
 const STOP=new Set('der die das ein eine einen einem einer eines und oder aber ist sind war den dem des als auch nur bei aus von vom zu zum zur im in an auf mit fuer ueber unter vor nach so wie dass man wird werden kann muss soll sich es sie er ihr ihre sein seine dies diese dieser dann noch schon sowie bzw usw etc the a of to and or is are for with'.split(' '));
 function levDist(a,b){
   const m=a.length,n=b.length; if(!m)return n; if(!n)return m;
@@ -1347,7 +1403,7 @@ function wordSim(a,b){ if(a===b)return 1; const d=levDist(a,b), m=Math.max(a.len
 function contentTokens(s){ return normalizeTxt(s).split(' ').filter(w=>w.length>2 && !STOP.has(w)); }
 function keyTerms(ref){
   const seen=new Set(), out=[];
-  (ref||'').split(/[\s/]+/).forEach(w=>{
+  (ref||'').split(/[\s/\-–—]+/).forEach(w=>{   // auch am Bindestrich trennen (Traffic-Austausch → Traffic, Austausch) – wie contentTokens
     const n=normalizeTxt(w);
     if(n.length>2 && !STOP.has(n) && !seen.has(n)){
       seen.add(n);
@@ -1357,6 +1413,9 @@ function keyTerms(ref){
   return out;
 }
 function gradeAnswer(userText, refText){
+  if(isFormulaRef(refText)){   // Formel-Antwort: zeichenerhaltender Ähnlichkeitsvergleich statt Stichwörter
+    return {score:Math.round(wordSim(formulaNorm(userText), formulaNorm(refText))*100), hits:[], misses:[]};
+  }
   const U=contentTokens(userText), terms=keyTerms(refText);
   if(!terms.length){
     const s=Math.round(wordSim(normalizeTxt(userText), normalizeTxt(refText))*100);
@@ -2064,7 +2123,9 @@ setTimeout(drawLinks, 120);
     const pool=scopeCards();
     const remainTouches=pool.reduce((s,c)=> s+Math.max(0,cfg.target-store.getBox(c.id)),0);
     const left=Math.max(1, totalDays()-dayIdx());
-    if(cfg.gd!==todayStr()){ cfg.gd=todayStr(); cfg.gn=Math.min(remainTouches, Math.ceil(remainTouches/left)); saveCfg(); }
+    if(cfg.gd!==todayStr() || cfg.gc!==pool.length){   // neuer Tag ODER geänderte Kartenbasis (z. B. Ein-Satz-Karten) → Tagesziel neu
+      cfg.gd=todayStr(); cfg.gc=pool.length; cfg.gn=Math.min(remainTouches, Math.ceil(remainTouches/left)); saveCfg();
+    }
     return cfg.gn||0;
   }
   function isNew(c){ return seen[c.id]===undefined && store.getBox(c.id)===0; }
@@ -2119,6 +2180,7 @@ setTimeout(drawLinks, 120);
       '<label>Prüfung: <input type="date" id="plan-exam" value="'+cfg.exam+'"></label>'+
       '<label>Umfang: <select id="plan-scope"><option value="all"'+(cfg.scope==='all'?' selected':'')+'>Beide Fächer</option><option value="iti"'+(cfg.scope==='iti'?' selected':'')+'>Nur ITI</option><option value="tgdi"'+(cfg.scope==='tgdi'?' selected':'')+'>Nur TGDI</option></select></label>'+
       '<label>Ziel/Karte: <select id="plan-target"><option value="1"'+(cfg.target===1?' selected':'')+'>1× ≥80%</option><option value="2"'+(cfg.target===2?' selected':'')+'>2× ≥80%</option><option value="3"'+(cfg.target===3?' selected':'')+'>3× ≥80%</option></select></label>'+
+      '<label class="plan-atomic" title="Lange Antworten in einzelne Ein-Satz-Karten aufteilen"><input type="checkbox" id="plan-atomic"'+(ATOMIC?' checked':'')+'> Ein-Satz-Karten ('+GLOBAL_CARDS.length+')</label>'+
       '<button class="plan-reset" id="plan-reset">Zeitplan ab heute neu starten</button>'+
     '</div>';
     body.innerHTML=h;
@@ -2149,6 +2211,10 @@ setTimeout(drawLinks, 120);
     if(e.target.id==='plan-exam' && e.target.value){ cfg.exam=e.target.value; cfg.gd=null; saveCfg(); render(); }
     else if(e.target.id==='plan-scope'){ cfg.scope=e.target.value; cfg.gd=null; saveCfg(); render(); }
     else if(e.target.id==='plan-target'){ cfg.target=+e.target.value; cfg.gd=null; saveCfg(); render(); }
+    else if(e.target.id==='plan-atomic'){   // Ein-Satz-Karten umschalten: Tagesziel neu, Seite neu laden (Kartenbasis wird neu aufgebaut)
+      try{ localStorage.setItem('iti21_atomic', e.target.checked?'1':'0'); }catch(_){}
+      cfg.gd=null; saveCfg(); location.reload();
+    }
   });
   document.addEventListener('keydown', e=>{ if(ov && !ov.hidden && e.key==='Escape') closePlan(); });
   document.addEventListener('planopen', openPlan);
