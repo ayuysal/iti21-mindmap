@@ -330,9 +330,9 @@
   #ov-check{flex:1; font-family:var(--sans); font-size:.9rem; font-weight:650; color:var(--accent-ink); background:var(--accent);
     border:none; padding:13px; border-radius:11px; cursor:pointer; transition:filter .14s}
   #ov-check:hover{filter:brightness(1.08)}
-  #ov-skip{font-family:var(--sans); font-size:.84rem; font-weight:600; color:var(--ink-soft); background:var(--field);
+  #ov-skip, #ov-peek{font-family:var(--sans); font-size:.84rem; font-weight:600; color:var(--ink-soft); background:var(--field);
     border:1px solid var(--field-border); padding:13px 15px; border-radius:11px; cursor:pointer; transition:all .14s; white-space:nowrap}
-  #ov-skip:hover{background:var(--field-hover)}
+  #ov-skip:hover, #ov-peek:hover{background:var(--field-hover); color:var(--ink)}
 
   .score{display:flex; align-items:center; gap:13px; margin-top:16px; padding:12px 14px; border-radius:12px;
     border:1px solid var(--line); background:var(--mix-base)}
@@ -1572,7 +1572,7 @@ const Study={
           '<textarea id="ov-answer" class="ov-input" spellcheck="false" placeholder="Antwort aus dem Gedächtnis eintippen …"></textarea>'+
           '<div class="ov-syms" title="Zeichen einfügen">'+MATH_SYMBOLS.map(s=>'<button type="button" data-s="'+s+'" tabindex="-1" onmousedown="return false">'+s+'</button>').join('')+'</div>'+
           '<div class="ov-writebtns"><button id="ov-check">Auswerten</button>'+
-          '<button id="ov-skip">Weiß ich nicht</button></div></div>';
+          '<button id="ov-peek" title="Antwort direkt einblenden (ohne Bewertung)">👁 Antwort zeigen</button></div></div>';
       } else {
         html+='<div class="ov-actions"><button id="ov-reveal">Antwort zeigen</button></div>';
       }
@@ -1668,7 +1668,7 @@ overlay.addEventListener('click', e=>{
   if(e.target.id==='ov-close'){ closeStudy(); return; }   // nur der ×-Knopf schließt (kein versehentlicher Backdrop-Klick)
   const sym=e.target.closest('.ov-syms button[data-s]'); if(sym){ insertAtOvAnswer(sym.dataset.s); return; }
   if(e.target.closest('#ov-check')){ Study.check(); return; }
-  if(e.target.closest('#ov-skip')){ Study.skip(); return; }
+  if(e.target.closest('#ov-peek')){ Study.reveal(); return; }
   if(e.target.closest('#ov-reveal')){ Study.reveal(); return; }
   if(e.target.closest('#ov-again')){ Study.rate(false); return; }
   if(e.target.closest('#ov-good')){ Study.rate(true); return; }
