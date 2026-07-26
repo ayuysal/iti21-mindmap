@@ -353,6 +353,14 @@
   .your-answer{font-size:.9rem; line-height:1.5; color:var(--ink-2); background:var(--chip-bg); border-radius:10px; padding:9px 12px; margin-top:12px; white-space:pre-wrap; word-break:break-word}
   .your-answer .yl{font-family:var(--mono); font-size:.6rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); display:block; margin-bottom:4px}
   .ov-suggest{box-shadow:0 0 0 2px var(--accent)}
+  .kp-label{font-family:var(--mono); font-size:.6rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); margin:16px 0 8px}
+  .kp-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px}
+  .kp-list li{display:flex; gap:9px; align-items:flex-start; font-size:.88rem; line-height:1.45; color:var(--ink-2)}
+  .kp-list li>span:last-child{flex:1; min-width:0}
+  .kp-ic{flex:none; width:19px; height:19px; border-radius:6px; display:grid; place-items:center; font-size:.72rem; font-weight:800; margin-top:1px; background:var(--chip-bg); color:var(--ink-soft)}
+  .kp-list li.kp-hit{color:var(--ink)}
+  .kp-list li.kp-hit .kp-ic{background:var(--ok-bg); color:var(--ok-ink)}
+  .kp-list li.kp-miss .kp-ic{background:var(--danger-bg); color:var(--danger-ink)}
 
   /* ---------- Notiz-Editor (verschiebbar · ausklinkbar · themefarben) ---------- */
   .editor{position:fixed; right:20px; top:118px; z-index:45; width:384px; height:452px;
@@ -1316,7 +1324,7 @@ const ovStage=document.getElementById('ov-stage');
 const ovScope=document.getElementById('ov-scope');
 
 // --- Unscharfe Antwort-Bewertung (Stichwort-Treffer + Tippfehler-Toleranz) ---
-const PASS=60;
+const PASS=80;   // Ziel: ≥80 % der Antwort (Kernpunkte) wiedergeben
 function normalizeTxt(s){
   return (s||'').toLowerCase().replace(/ß/g,'ss')
     .normalize('NFD').replace(/[̀-ͯ]/g,'')
@@ -1361,9 +1369,46 @@ function gradeAnswer(userText, refText){
   return {score:Math.round(credit/terms.length*100), hits, misses};
 }
 
+// Antwort in Kernpunkte zerlegen (aus dem echten Text: Zeilen, sonst Sätze) — nichts erfunden
+function splitPoints(answer){
+  let text=(answer||'').trim();
+  if(!text) return [];
+  let parts;
+  if(/\n/.test(text)){
+    parts=text.split(/\n+/);
+  } else {
+    const ABBR=/\b(z\.\s?B|u\.\s?a|d\.\s?h|i\.\s?d\.\s?R|o\.\s?Ä|u\.\s?U|z\.\s?T|s\.\s?o|s\.\s?u|bzw|ca|usw|etc|vgl|Abschn|Nr|Kap|Abb|Tab|max|min|ggf|evtl|inkl|Mio|Mrd)\./gi;
+    let p=text.replace(ABBR, m=>m.replace(/\./g,'§P§'));
+    p=p.replace(/([.!?])\s+(?=[A-ZÄÖÜ0-9(])/g,'$1§S§');
+    parts=p.split('§S§').map(x=>x.replace(/§P§/g,'.'));
+  }
+  return parts.map(p=>p.replace(/^\s*(?:[•·▪‣]|\*\s|[-–—]\s|\d{1,2}[.)]\s)\s*/,'').replace(/\s+/g,' ').trim()).filter(p=>p.length>2);
+}
+// Punkt-Bewertung: ein Kernpunkt gilt als getroffen, wenn ≥50 % seiner Schlüsselbegriffe vorkommen
+function gradePoints(userText, points){
+  const U=contentTokens(userText);
+  const results=points.map(p=>{
+    const terms=keyTerms(p);
+    if(!terms.length) return {hit:true};
+    let cover=0;
+    terms.forEach(t=>{ let best=0; for(const u of U){ const v=wordSim(t.norm,u); if(v>best){ best=v; if(best===1)break; } } if(best>=0.82)cover++; else if(best>=0.6)cover+=0.5; });
+    return {hit:(cover/terms.length)>=0.5};
+  });
+  const hitN=results.filter(r=>r.hit).length;
+  return {score: points.length?Math.round(hitN/points.length*100):0, results, hitN};
+}
+// Kernpunkte als Liste rendern; results (optional) markiert getroffen/verpasst
+function pointsListHtml(pts, results){
+  return '<ul class="kp-list">'+pts.map((p,i)=>{
+    const r=results&&results[i]; const cls=r?(r.hit?' kp-hit':' kp-miss'):''; const ic=r?(r.hit?'✓':'○'):'•';
+    return '<li class="kp'+cls+'"><span class="kp-ic">'+ic+'</span><span>'+esc(p)+'</span></li>';
+  }).join('')+'</ul>';
+}
+
 const Study={
   scope:'all', queue:[], cur:null, revealed:false, total:0, done:0, again:0,
   mode:'write', graded:false, typed:'', score:0, hits:[], misses:[], passed:false,
+  points:[], results:[], hitN:0, pointMode:false,
   global:false, gscope:'all', planMode:false,
   pool(){
     if(this.global){
@@ -1389,16 +1434,22 @@ const Study={
     this.queue=p; this.total=p.length; this.done=0; this.again=0; this.cur=null;
     this.next();
   },
-  resetCard(){ this.revealed=false; this.graded=false; this.typed=''; this.score=0; this.hits=[]; this.misses=[]; this.passed=false; },
+  resetCard(){ this.revealed=false; this.graded=false; this.typed=''; this.score=0; this.hits=[]; this.misses=[]; this.passed=false; this.points=[]; this.results=[]; this.hitN=0; this.pointMode=false; },
   next(){ this.resetCard(); this.cur=this.queue.shift()||null; this.render(); },
   reveal(){ if(this.cur && !this.revealed){ this.revealed=true; this.graded=false; this.render(); } },
   check(){
     if(!this.cur || this.revealed) return;
     const ta=document.getElementById('ov-answer');
     this.typed = ta ? ta.value : '';
-    const g=gradeAnswer(this.typed, this.cur.a);
-    this.score=g.score; this.hits=g.hits; this.misses=g.misses;
-    this.passed = g.score>=PASS; this.graded=true; this.revealed=true;
+    const pts=splitPoints(this.cur.a); this.points=pts;
+    if(pts.length>=2){
+      const g=gradePoints(this.typed, pts);
+      this.score=g.score; this.results=g.results; this.hitN=g.hitN; this.pointMode=true;
+    } else {
+      const g=gradeAnswer(this.typed, this.cur.a);
+      this.score=g.score; this.hits=g.hits; this.misses=g.misses; this.pointMode=false;
+    }
+    this.passed = this.score>=PASS; this.graded=true; this.revealed=true;
     this.render();
   },
   skip(){ if(this.cur && !this.revealed){ this.revealed=true; this.graded=false; this.typed=''; this.render(); } },
@@ -1437,24 +1488,29 @@ const Study={
         html+='<div class="ov-actions"><button id="ov-reveal">Antwort zeigen</button></div>';
       }
     } else {
+      const pts=(this.points&&this.points.length)?this.points:splitPoints(c.a);
       if(this.graded){
         const cls=this.passed?'pass':(this.score>=40?'mid':'fail');
         const sc=this.passed?'var(--ok-ink)':(this.score>=40?'#E0A83A':'var(--danger-ink)');
         const verdict=this.passed?'Bestanden ✓':(this.score>=40?'Fast — knapp daneben':'Nochmal üben');
-        const total=this.hits.length+this.misses.length;
+        const sub=this.pointMode?('Kernpunkte '+this.hitN+' / '+pts.length+' getroffen'):('Stichwörter '+this.hits.length+' / '+(this.hits.length+this.misses.length)+' getroffen');
         html+='<div class="score '+cls+'" style="--sc:'+sc+'">'+
           '<div class="score-ring" style="--p:'+this.score+'"><b>'+this.score+'%</b></div>'+
           '<div class="score-txt"><div class="score-verdict">'+verdict+'</div>'+
-          '<div class="score-sub">Stichwörter '+this.hits.length+' / '+total+' getroffen</div></div></div>';
-        if(total){
-          html+='<div class="kw">'+
-            this.hits.map(h=>'<span class="kw-tag kw-hit">'+esc(h)+'</span>').join('')+
-            this.misses.map(m=>'<span class="kw-tag kw-miss">'+esc(m)+'</span>').join('')+'</div>';
-        }
+          '<div class="score-sub">'+sub+'</div></div></div>';
         if(this.typed.trim()) html+='<div class="your-answer"><span class="yl">Deine Antwort</span>'+esc(this.typed)+'</div>';
+        if(this.pointMode){
+          html+='<div class="kp-label">Musterantwort · Kernpunkte</div>'+pointsListHtml(pts, this.results);
+        } else {
+          const total=this.hits.length+this.misses.length;
+          if(total) html+='<div class="kw">'+this.hits.map(h=>'<span class="kw-tag kw-hit">'+esc(h)+'</span>').join('')+this.misses.map(m=>'<span class="kw-tag kw-miss">'+esc(m)+'</span>').join('')+'</div>';
+          html+='<div class="ov-a"></div>';
+        }
+      } else {
+        if(pts.length>=2) html+='<div class="kp-label">Musterantwort · Kernpunkte</div>'+pointsListHtml(pts, null);
+        else html+='<div class="ov-a"></div>';
       }
-      html+='<div class="ov-a"></div>'+
-        '<div class="ov-actions"><div class="ov-rate">'+
+      html+='<div class="ov-actions"><div class="ov-rate">'+
         '<button id="ov-again"'+(this.graded&&!this.passed?' class="ov-suggest"':'')+'><span class="k">1</span>Nochmal</button>'+
         '<button id="ov-good"'+(this.graded&&this.passed?' class="ov-suggest"':'')+'><span class="k">2</span>Gewusst ✓</button></div></div>';
     }
@@ -2005,11 +2061,11 @@ setTimeout(drawLinks, 120);
         '<div class="plan-status '+sc+'">'+st+'</div>'+
       '</div></div>';
     h+='<button class="btn primary plan-start" id="plan-start"'+(t.set.length===0?' disabled':'')+'>▶ Heute-Pensum starten'+(t.set.length?' ('+t.set.length+')':'')+'</button>';
-    h+='<div class="plan-pace">Prüfungsfest ('+cfg.target+'× gewusst): <b style="color:var(--ok-ink)">'+t.done+'</b> / '+t.total+' · offen: '+t.notDone+' · nötiges Tempo bis Prüfung: ~'+perDay+' Abrufe/Tag</div>';
+    h+='<div class="plan-pace">Prüfungsfest ('+cfg.target+'× ≥80%): <b style="color:var(--ok-ink)">'+t.done+'</b> / '+t.total+' · offen: '+t.notDone+' · nötiges Tempo bis Prüfung: ~'+perDay+' Abrufe/Tag</div>';
     h+='<div class="plan-settings">'+
       '<label>Prüfung: <input type="date" id="plan-exam" value="'+cfg.exam+'"></label>'+
       '<label>Umfang: <select id="plan-scope"><option value="all"'+(cfg.scope==='all'?' selected':'')+'>Beide Fächer</option><option value="iti"'+(cfg.scope==='iti'?' selected':'')+'>Nur ITI</option><option value="tgdi"'+(cfg.scope==='tgdi'?' selected':'')+'>Nur TGDI</option></select></label>'+
-      '<label>Ziel/Karte: <select id="plan-target"><option value="1"'+(cfg.target===1?' selected':'')+'>1× gewusst</option><option value="2"'+(cfg.target===2?' selected':'')+'>2× gewusst</option><option value="3"'+(cfg.target===3?' selected':'')+'>3× gewusst</option></select></label>'+
+      '<label>Ziel/Karte: <select id="plan-target"><option value="1"'+(cfg.target===1?' selected':'')+'>1× ≥80%</option><option value="2"'+(cfg.target===2?' selected':'')+'>2× ≥80%</option><option value="3"'+(cfg.target===3?' selected':'')+'>3× ≥80%</option></select></label>'+
       '<button class="plan-reset" id="plan-reset">Zeitplan ab heute neu starten</button>'+
     '</div>';
     body.innerHTML=h;
