@@ -1502,7 +1502,7 @@ const Study={
   },
   // Laufende Session lokal sichern → versehentliches Schließen/Wiederöffnen verliert nichts
   persist(){
-    if(this.sessionType!=='plan') return;   // nur das Tages-Pensum wird gesichert/fortgesetzt
+    if(!this.sessionType) return;   // jede laufende Session (Heft/Global/Plan) wird gesichert & ist fortsetzbar
     try{
       if(this.cur){
         const ids=[this.cur.id].concat(this.queue.map(c=>c.id));
@@ -1518,6 +1518,7 @@ const Study={
     const map={}; GLOBAL_CARDS.forEach(c=>map[c.id]=c);
     const cards=s.ids.map(id=>map[id]).filter(Boolean); if(!cards.length) return false;
     this.mode=s.mode||this.mode; this.sessionType=s.type||null; this.gscope=s.gscope||'all'; this.scope=(s.scope==null?'all':s.scope);
+    const mm=document.getElementById('ov-mode'); if(mm) mm.checked=this.mode!=='flip';
     this.global=!!s.global; this.planMode=!!s.planMode; this.sessionBanner=s.banner||'';
     this.total=s.total||cards.length; this.done=s.done||0; this.again=s.again||0;
     this.queue=cards.slice(1); this.resetCard(); this.cur=cards[0];
@@ -1558,8 +1559,10 @@ const Study={
   render(){
     const rem=this.remaining(), prog=this.total? Math.round((this.total-rem)/this.total*100):0;
     document.getElementById('ov-bar').style.width=prog+'%';
-    const sure=this.pool().filter(c=>store.getBox(c.id)>=MASTER_BOX).length;
-    document.getElementById('ov-mastered').textContent='Sicher '+sure+' / '+this.pool().length;
+    const pl=this.pool();
+    const sure=pl.filter(c=>store.getBox(c.id)>=MASTER_BOX).length;
+    const learn=pl.filter(c=>{const b=store.getBox(c.id); return b>0 && b<MASTER_BOX;}).length;
+    document.getElementById('ov-mastered').textContent='Sicher '+sure+(learn?' · In Arbeit '+learn:'')+' / '+pl.length;
     if(!this.cur){
       document.getElementById('ov-counter').textContent='Runde abgeschlossen';
       ovStage.innerHTML='<div class="ov-done"><div class="ov-done-icon">✓</div>'+
@@ -1649,7 +1652,7 @@ function selectScope(v){
 function openStudy(){
   overlay.hidden=false; document.getElementById('ov-mode').checked = Study.mode!=='flip';
   const s=Study.savedSession();
-  if(s && s.type==='plan' && s.ids && s.ids.length){ if(Study.resume()) return; }   // offene Tages-Session fortsetzen
+  if(s && s.ids && s.ids.length){ if(Study.resume()) return; }   // letzte offene Session fortsetzen (Heft/Global/Plan)
   Study.global=false; buildScopeChips(); Study.start('all');
 }
 function openStudyGlobal(gscope){ Study.global=true; Study.gscope=gscope||'all'; overlay.hidden=false; document.getElementById('ov-mode').checked = Study.mode!=='flip'; buildScopeChips(); Study.start(); }
@@ -1662,11 +1665,11 @@ function insertAtOvAnswer(s){
   const a=ta.selectionStart, b=ta.selectionEnd;
   ta.setRangeText(s, a, b, 'end'); ta.focus();
 }
-// Lernmodus-Button zeigt „Weiterlernen", wenn eine Tages-Session offen (pausiert) ist
+// Lernmodus-Button zeigt „Weiterlernen", wenn eine Session offen (pausiert) ist
 function updateStudyBtn(){
   const btn=document.getElementById('study-btn'); if(!btn) return;
   const s=Study.savedSession();
-  if(s && s.type==='plan' && s.ids && s.ids.length) btn.innerHTML='<span class="k">↩</span>Weiterlernen';
+  if(s && s.ids && s.ids.length) btn.innerHTML='<span class="k">↩</span>Weiterlernen';
   else btn.innerHTML='<span class="k">↺</span>Lernmodus';
 }
 
