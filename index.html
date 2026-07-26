@@ -1409,7 +1409,7 @@ const Study={
   scope:'all', queue:[], cur:null, revealed:false, total:0, done:0, again:0,
   mode:'write', graded:false, typed:'', score:0, hits:[], misses:[], passed:false,
   points:[], results:[], hitN:0, pointMode:false,
-  global:false, gscope:'all', planMode:false,
+  global:false, gscope:'all', planMode:false, sessionType:null, sessionBanner:'',
   pool(){
     if(this.global){
       return GLOBAL_CARDS.filter(c=>
@@ -1420,7 +1420,7 @@ const Study={
     return ALL_CARDS.filter(c=> this.scope==='all' || c.bi===this.scope);
   },
   start(scope){
-    this.planMode=false;
+    this.planMode=false; this.sessionType=this.global?'global':'heft'; this.sessionBanner='';
     if(scope!==undefined) this.scope=scope;
     const p=this.pool().slice();
     p.sort((a,b)=> (store.getBox(a.id)-store.getBox(b.id)) || (Math.random()-0.5));
@@ -1428,14 +1428,38 @@ const Study={
     this.next();
   },
   startList(cards){
-    this.planMode=true; this.global=true; this.gscope='all';
+    this.planMode=true; this.global=true; this.gscope='all'; this.sessionType='plan';
     const p=cards.slice();
     p.sort((a,b)=> (store.getBox(a.id)-store.getBox(b.id)) || (Math.random()-0.5));
     this.queue=p; this.total=p.length; this.done=0; this.again=0; this.cur=null;
     this.next();
   },
+  // Laufende Session lokal sichern → versehentliches Schließen/Wiederöffnen verliert nichts
+  persist(){
+    if(this.sessionType!=='plan') return;   // nur das Tages-Pensum wird gesichert/fortgesetzt
+    try{
+      if(this.cur){
+        const ids=[this.cur.id].concat(this.queue.map(c=>c.id));
+        localStorage.setItem('iti21_session', JSON.stringify({ ids, done:this.done, again:this.again, total:this.total, mode:this.mode, type:this.sessionType, gscope:this.gscope, scope:this.scope, banner:this.sessionBanner, global:this.global, planMode:this.planMode }));
+      } else { localStorage.removeItem('iti21_session'); }
+    }catch(e){}
+  },
+  savedSession(){ try{ return JSON.parse(localStorage.getItem('iti21_session')||'null'); }catch(e){ return null; } },
+  resume(){
+    const s=this.savedSession(); if(!s || !s.ids || !s.ids.length) return false;
+    const map={}; GLOBAL_CARDS.forEach(c=>map[c.id]=c);
+    const cards=s.ids.map(id=>map[id]).filter(Boolean); if(!cards.length) return false;
+    this.mode=s.mode||this.mode; this.sessionType=s.type||null; this.gscope=s.gscope||'all'; this.scope=(s.scope==null?'all':s.scope);
+    this.global=!!s.global; this.planMode=!!s.planMode; this.sessionBanner=s.banner||'';
+    this.total=s.total||cards.length; this.done=s.done||0; this.again=s.again||0;
+    this.queue=cards.slice(1); this.resetCard(); this.cur=cards[0];
+    if(this.planMode && this.sessionBanner) ovScope.innerHTML='<div class="plan-banner">'+esc(this.sessionBanner)+' &middot; fortgesetzt ('+cards.length+' übrig)</div>';
+    else buildScopeChips();
+    this.render();
+    return true;
+  },
   resetCard(){ this.revealed=false; this.graded=false; this.typed=''; this.score=0; this.hits=[]; this.misses=[]; this.passed=false; this.points=[]; this.results=[]; this.hitN=0; this.pointMode=false; },
-  next(){ this.resetCard(); this.cur=this.queue.shift()||null; this.render(); },
+  next(){ this.resetCard(); this.cur=this.queue.shift()||null; this.render(); this.persist(); },
   reveal(){ if(this.cur && !this.revealed){ this.revealed=true; this.graded=false; this.render(); } },
   check(){
     if(!this.cur || this.revealed) return;
@@ -1555,7 +1579,7 @@ document.getElementById('ov-mode').addEventListener('change', e=>{
   Study.resetCard(); Study.render();
 });
 overlay.addEventListener('click', e=>{
-  if(e.target===overlay || e.target.id==='ov-close'){ closeStudy(); return; }
+  if(e.target.id==='ov-close'){ closeStudy(); return; }   // nur der ×-Knopf schließt (kein versehentlicher Backdrop-Klick)
   if(e.target.closest('#ov-check')){ Study.check(); return; }
   if(e.target.closest('#ov-skip')){ Study.skip(); return; }
   if(e.target.closest('#ov-reveal')){ Study.reveal(); return; }
@@ -2060,7 +2084,8 @@ setTimeout(drawLinks, 120);
         '<div class="plan-split">'+t.newN+' neu · '+t.dueN+' Wiederholung</div>'+
         '<div class="plan-status '+sc+'">'+st+'</div>'+
       '</div></div>';
-    h+='<button class="btn primary plan-start" id="plan-start"'+(t.set.length===0?' disabled':'')+'>▶ Heute-Pensum starten'+(t.set.length?' ('+t.set.length+')':'')+'</button>';
+    const sv=Study.savedSession(); const canResume=!!(sv && sv.type==='plan' && sv.ids && sv.ids.length);
+    h+='<button class="btn primary plan-start" id="plan-start"'+((t.set.length===0&&!canResume)?' disabled':'')+'>'+(canResume?'↩ Weiterlernen ('+sv.ids.length+' übrig)':'▶ Heute-Pensum starten'+(t.set.length?' ('+t.set.length+')':''))+'</button>';
     h+='<div class="plan-pace">Prüfungsfest ('+cfg.target+'× ≥80%): <b style="color:var(--ok-ink)">'+t.done+'</b> / '+t.total+' · offen: '+t.notDone+' · nötiges Tempo bis Prüfung: ~'+perDay+' Abrufe/Tag</div>';
     h+='<div class="plan-settings">'+
       '<label>Prüfung: <input type="date" id="plan-exam" value="'+cfg.exam+'"></label>'+
@@ -2073,11 +2098,16 @@ setTimeout(drawLinks, 120);
   function openPlan(){ if(!ov) return; ensureCfg(); ov.hidden=false; render(); }
   function closePlan(){ if(ov) ov.hidden=true; }
   function startToday(){
+    const m=document.getElementById('ov-mode');
+    const s=Study.savedSession();
+    if(s && s.type==='plan' && s.ids && s.ids.length){   // laufendes Tages-Pensum fortsetzen
+      closePlan(); overlay.hidden=false; if(m) m.checked = Study.mode!=='flip';
+      if(Study.resume()) return;
+    }
     const t=todaySet(); if(!t.set.length) return;
-    closePlan();
-    overlay.hidden=false;
-    const m=document.getElementById('ov-mode'); if(m) m.checked = Study.mode!=='flip';
-    ovScope.innerHTML='<div class="plan-banner">📅 Tag '+Math.min(dayIdx()+1,totalDays())+' · Heute-Pensum ('+t.set.length+' Karten)</div>';
+    closePlan(); overlay.hidden=false; if(m) m.checked = Study.mode!=='flip';
+    Study.sessionBanner='📅 Tag '+Math.min(dayIdx()+1,totalDays())+' · Heute-Pensum';
+    ovScope.innerHTML='<div class="plan-banner">'+Study.sessionBanner+' ('+t.set.length+' Karten)</div>';
     Study.startList(t.set);
   }
 
